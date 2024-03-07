@@ -1,7 +1,10 @@
 #[allow(unused)]
 mod algo {
     use super::rng;
-    use std::{collections::{BTreeSet, HashSet}, fs::read_to_string};
+    use std::{
+        collections::{BTreeSet, HashSet},
+        fs::read_to_string,
+    };
 
     pub fn read_palets(file: &str) -> Palets {
         let content = read_to_string(file);
@@ -78,7 +81,6 @@ mod algo {
                     best_sol = sol;
                     best_cost = new_cost;
                 }
-
                 it += 1;
             }
 
@@ -142,9 +144,8 @@ mod algo {
 
             let mut it = 0;
 
-
             const CBT: bool = true;
-            const MAX_COM: usize = (N_TRUCKS*N_TRUCKS)*((TRUCK_CAP*(TRUCK_CAP-1))/2);
+            const MAX_COM: usize = (N_TRUCKS * N_TRUCKS) * ((TRUCK_CAP * (TRUCK_CAP - 1)) / 2);
 
             let mut visitados = HashSet::new();
             'main_loop: while it < N_EVAL {
@@ -153,18 +154,15 @@ mod algo {
                 visitados.insert(next_sol.clone());
 
                 while self.cost(&next_sol) >= best_cost {
-
                     next_sol = self.gen_neighbour(&actual_sol, CBT);
                     while visitados.contains(&next_sol) {
                         next_sol = self.gen_neighbour(&actual_sol, CBT);
                     }
-
                     visitados.insert(next_sol.clone());
-
                     if visitados.len() >= MAX_COM {
                         break 'main_loop;
-                    }                 }
-
+                    }
+                }
                 best_sol = actual_sol.clone();
                 best_cost = self.cost(&best_sol);
                 actual_sol = next_sol;
@@ -179,7 +177,6 @@ mod algo {
 
         fn gen_sol(&self) -> Trucks {
             let mut new_sol = Trucks::default();
-
             for pal in self.palets.iter().cloned() {
                 let mut to_truck = rng::next_usize() % N_TRUCKS;
                 while new_sol[to_truck].len() >= TRUCK_CAP {
@@ -200,7 +197,6 @@ mod algo {
 
         fn two_op_in_truck(sol: &Trucks) -> Trucks {
             let mut sol = sol.clone();
-
             let truck = rng::next_usize() % N_TRUCKS;
 
             let from = rng::next_usize() % TRUCK_CAP;
@@ -296,7 +292,5 @@ mod rng {
         */
 
         rand::random()
-
-        
     }
 }
