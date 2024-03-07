@@ -145,24 +145,34 @@ mod algo {
             let mut it = 0;
 
             const CBT: bool = true;
-            const MAX_COM: usize = (N_TRUCKS * N_TRUCKS) * ((TRUCK_CAP * (TRUCK_CAP - 1)) / 2);
+            const MAX_COM: usize = if CBT {
+                (N_TRUCKS * N_TRUCKS) * ((TRUCK_CAP * (TRUCK_CAP - 1)) / 2)
+            } else {
+                ((TRUCK_CAP * (TRUCK_CAP - 1)) / 2)
+            };
 
             let mut visitados = HashSet::new();
+            let mut switch = true;
             'main_loop: while it < N_EVAL {
-                let mut next_sol = self.gen_neighbour(&actual_sol, CBT);
+                let mut next_sol = self.gen_neighbour(&actual_sol, switch);
                 visitados.clear();
                 visitados.insert(next_sol.clone());
 
                 while self.cost(&next_sol) >= best_cost {
-                    next_sol = self.gen_neighbour(&actual_sol, CBT);
+                    next_sol = self.gen_neighbour(&actual_sol, switch);
                     while visitados.contains(&next_sol) {
-                        next_sol = self.gen_neighbour(&actual_sol, CBT);
+                        next_sol = self.gen_neighbour(&actual_sol, switch);
                     }
                     visitados.insert(next_sol.clone());
                     if visitados.len() >= MAX_COM {
                         break 'main_loop;
                     }
                 }
+
+                if CBT {
+                    switch != switch;
+                }
+
                 best_sol = actual_sol.clone();
                 best_cost = self.cost(&best_sol);
                 actual_sol = next_sol;
