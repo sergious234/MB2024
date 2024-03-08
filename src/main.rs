@@ -67,7 +67,7 @@ mod algo {
             }
         }
 
-        pub fn run(&mut self) {
+        pub fn run(&self) {
             let mut sol = self.gen_sol();
             let mut it = 0;
 
@@ -137,7 +137,7 @@ mod algo {
             }
         }
 
-        pub fn run(&mut self) {
+        pub fn run(&self) {
             let mut actual_sol = self.gen_sol();
             let mut best_sol = actual_sol.clone();
             let mut best_cost = self.cost(&best_sol);
@@ -256,6 +256,137 @@ mod algo {
             cost
         }
     }
+
+    pub struct SimulatedAnnealing {
+        cost_mat: Costs,
+        palets: Palets,
+        trucks: Trucks,
+    }
+
+    impl SimulatedAnnealing {
+        pub fn new(cost_mat: Costs, palets: Palets) -> Self {
+            let mut x: [Vec<usize>; N_TRUCKS] = Default::default();
+            for i in 0..N_TRUCKS {
+                x[i] = vec![];
+            }
+
+            Self {
+                cost_mat,
+                palets,
+                trucks: x,
+            }
+        }
+
+
+        pub fn run(&self) {
+            let mut best_sol = self.gen_sol();
+            let mut best_cost = self.cost(&best_sol);
+
+            // let mut visitados = HashSet::new();
+            let mut switch = true;
+
+            let lt = 100;
+            let mut temp = 1000;
+
+            let aceptacion = |cost_diff: isize, temp: usize| {
+                (-(cost_diff as f64) / temp as f64).exp() as usize
+            };
+
+            while temp > 0 {
+                for _cont in 0..lt {
+                    let sol_cand = self.gen_neighbour(&best_sol, false);
+                    let cost_cand = self.cost(&sol_cand);
+                    let delta_cost = best_cost as isize - cost_cand as isize;
+                    
+                    if rng::next_usize_range(0, 1) < aceptacion(delta_cost, temp) 
+                        || delta_cost < 0 {
+                        best_cost = cost_cand;
+                        best_sol = sol_cand;
+                    }
+
+                    temp = (0.5*temp as f64) as usize;
+                }
+            }
+
+            for (i, t) in best_sol.iter().enumerate() {
+                println!("Truck {}: {:?}", i, t);
+            }
+            println!("Coste: {}", best_cost)
+
+        }
+
+        fn gen_sol(&self) -> Trucks {
+            let mut new_sol = Trucks::default();
+            for pal in self.palets.iter().cloned() {
+                let mut to_truck = rng::next_usize() % N_TRUCKS;
+                while new_sol[to_truck].len() >= TRUCK_CAP {
+                    to_truck = rng::next_usize() % N_TRUCKS;
+                }
+                new_sol[to_truck].push(pal);
+            }
+            new_sol
+        }
+
+        fn gen_neighbour(&self, sol: &Trucks, change_palets: bool) -> Trucks {
+            let mut nb = Self::two_op_in_truck(sol);
+            if change_palets {
+                nb = Self::two_op_within_truck(&nb);
+            }
+            nb
+        }
+
+        fn two_op_in_truck(sol: &Trucks) -> Trucks {
+            let mut sol = sol.clone();
+            let truck = rng::next_usize() % N_TRUCKS;
+
+            let from = rng::next_usize() % TRUCK_CAP;
+            let mut to = rng::next_usize() % TRUCK_CAP;
+            while to == from {
+                to = rng::next_usize() % TRUCK_CAP;
+            }
+
+            let aux = sol[truck][to];
+            sol[truck][to] = sol[truck][from];
+            sol[truck][from] = aux;
+            sol
+        }
+
+        fn two_op_within_truck(sol: &Trucks) -> Trucks {
+            let mut new_sol = sol.clone();
+
+            let from_truck = rng::next_usize() % N_TRUCKS;
+            let mut to_truck = rng::next_usize() % N_TRUCKS;
+            while to_truck == from_truck {
+                to_truck = rng::next_usize() % N_TRUCKS;
+            }
+
+            let from = rng::next_usize() % TRUCK_CAP;
+            let mut to = rng::next_usize() % TRUCK_CAP;
+            while to == from {
+                to = rng::next_usize() % TRUCK_CAP;
+            }
+
+            let aux = new_sol[to_truck][to];
+            new_sol[to_truck][to] = new_sol[from_truck][from];
+            new_sol[from_truck][from] = aux;
+
+            new_sol
+        }
+
+        fn cost(&self, sol: &Trucks) -> usize {
+            let mut cost = 0;
+            for truck in sol.iter() {
+                let mut actual_city = 0;
+                for city in truck.iter().map(|e| e - 1) {
+                    cost += self.cost_mat[actual_city][city];
+                    actual_city = city;
+                }
+                cost += self.cost_mat[actual_city][0];
+            }
+            cost
+        }
+
+    }
 }
 
 fn main() {
@@ -264,7 +395,7 @@ fn main() {
     let cities = read_palets("../data/destinos_palets_84.txt");
     let distances = read_distances("../data/matriz_distancias_25.txt");
     for _i in 0..5 {
-        let mut search = LocalSearch::new(distances, cities.clone());
+        let search = SimulatedAnnealing::new(distances, cities.clone());
         search.run();
         rng::set_new_seed(rng::get_time_usize());
     }
@@ -291,8 +422,8 @@ mod rng {
         CURRENT.store(new_seed as isize, Relaxed);
     }
 
+    use rand;
     pub fn next_usize() -> usize {
-        use rand;
 
         /*
         let mut next = CURRENT.load(Relaxed);
@@ -302,5 +433,9 @@ mod rng {
         */
 
         rand::random()
+    }
+
+    pub fn next_usize_range(min: usize, max:usize) -> usize {
+        rand::random::<usize>() % (max-min+1) + min
     }
 }
