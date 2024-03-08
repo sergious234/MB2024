@@ -4,11 +4,12 @@ mod algo {
     use std::{
         collections::{BTreeSet, HashSet},
         fs::read_to_string,
+        usize,
     };
 
     pub fn read_palets(file: &str) -> Palets {
         let content = read_to_string(file);
-        let content = content.expect("No se pudo leer el fichero de destinos");
+        let content = content.expect("Could not read the palets file");
         content
             .lines()
             .map(|l| l.trim().parse().expect("Couldnt parse the value"))
@@ -18,11 +19,11 @@ mod algo {
     pub fn read_distances(file: &str) -> Costs {
         let content = read_to_string(file);
         let content: Vec<Vec<usize>> = content
-            .expect("No se pudo leer el fichero de distancias")
+            .expect("Could not read the distances file")
             .lines()
             .map(|l| {
                 l.split_whitespace()
-                    .map(|l| l.trim().parse().expect("Coudlnt parse the value"))
+                    .map(|l| l.trim().parse().expect("Couldnt parse the value"))
                     .collect::<Vec<usize>>()
             })
             .collect();
@@ -37,11 +38,59 @@ mod algo {
         costs
     }
 
-    const N_EVAL: usize = 1_000;
+    fn two_op_in_truck(sol: &Trucks) -> Trucks {
+        let mut sol = sol.clone();
+        let truck = rng::next_usize() % N_TRUCKS;
+
+        let from = rng::next_usize() % TRUCK_CAP;
+        let mut to = rng::next_usize() % TRUCK_CAP;
+        while to == from {
+            to = rng::next_usize() % TRUCK_CAP;
+        }
+
+        let aux = sol[truck][to];
+        sol[truck][to] = sol[truck][from];
+        sol[truck][from] = aux;
+        sol
+    }
+
+    fn two_op_within_truck(sol: &Trucks) -> Trucks {
+        let mut new_sol = sol.clone();
+
+        let from_truck = rng::next_usize() % N_TRUCKS;
+        let mut to_truck = rng::next_usize() % N_TRUCKS;
+        while to_truck == from_truck {
+            to_truck = rng::next_usize() % N_TRUCKS;
+        }
+
+        let from = rng::next_usize() % TRUCK_CAP;
+        let mut to = rng::next_usize() % TRUCK_CAP;
+        while to == from {
+            to = rng::next_usize() % TRUCK_CAP;
+        }
+
+        let aux = new_sol[to_truck][to];
+        new_sol[to_truck][to] = new_sol[from_truck][from];
+        new_sol[from_truck][from] = aux;
+
+        new_sol
+    }
+
+    const N_EVAL: usize = 100_000;
     const N_PALETS: usize = 84;
+
+    // Number of cities
     const N: usize = 25;
     const N_TRUCKS: usize = 6;
     const TRUCK_CAP: usize = 14;
+    const ANN_CONST: f64 = 0.99;
+
+    const CBT: bool = true;
+    const MAX_COM: usize = if CBT {
+        (N_TRUCKS * N_TRUCKS) * ((TRUCK_CAP * (TRUCK_CAP - 1)) / 2)
+    } else {
+        ((TRUCK_CAP * (TRUCK_CAP - 1)) / 2)
+    };
 
     type Costs = [[usize; N]; N];
     type Palets = Vec<usize>;
@@ -73,7 +122,7 @@ mod algo {
 
             let mut best_sol = sol;
             let mut best_cost = self.cost(&best_sol);
-            while it < N_EVAL || false {
+            while it < N_EVAL {
                 sol = self.gen_sol();
                 let new_cost = self.cost(&sol);
 
@@ -92,7 +141,6 @@ mod algo {
 
         fn gen_sol(&self) -> Trucks {
             let mut new_sol = Trucks::default();
-
             for pal in self.palets.iter().cloned() {
                 let mut to_truck = rng::next_usize() % N_TRUCKS;
                 while new_sol[to_truck].len() >= TRUCK_CAP {
@@ -144,13 +192,6 @@ mod algo {
 
             let mut it = 0;
 
-            const CBT: bool = true;
-            const MAX_COM: usize = if CBT {
-                (N_TRUCKS * N_TRUCKS) * ((TRUCK_CAP * (TRUCK_CAP - 1)) / 2)
-            } else {
-                ((TRUCK_CAP * (TRUCK_CAP - 1)) / 2)
-            };
-
             let mut visitados = HashSet::new();
             let mut switch = true;
             'main_loop: while it < N_EVAL {
@@ -198,49 +239,11 @@ mod algo {
         }
 
         fn gen_neighbour(&self, sol: &Trucks, change_palets: bool) -> Trucks {
-            let mut nb = Self::two_op_in_truck(sol);
+            let mut nb = two_op_in_truck(sol);
             if change_palets {
-                nb = Self::two_op_within_truck(&nb);
+                nb = two_op_within_truck(&nb);
             }
             nb
-        }
-
-        fn two_op_in_truck(sol: &Trucks) -> Trucks {
-            let mut sol = sol.clone();
-            let truck = rng::next_usize() % N_TRUCKS;
-
-            let from = rng::next_usize() % TRUCK_CAP;
-            let mut to = rng::next_usize() % TRUCK_CAP;
-            while to == from {
-                to = rng::next_usize() % TRUCK_CAP;
-            }
-
-            let aux = sol[truck][to];
-            sol[truck][to] = sol[truck][from];
-            sol[truck][from] = aux;
-            sol
-        }
-
-        fn two_op_within_truck(sol: &Trucks) -> Trucks {
-            let mut new_sol = sol.clone();
-
-            let from_truck = rng::next_usize() % N_TRUCKS;
-            let mut to_truck = rng::next_usize() % N_TRUCKS;
-            while to_truck == from_truck {
-                to_truck = rng::next_usize() % N_TRUCKS;
-            }
-
-            let from = rng::next_usize() % TRUCK_CAP;
-            let mut to = rng::next_usize() % TRUCK_CAP;
-            while to == from {
-                to = rng::next_usize() % TRUCK_CAP;
-            }
-
-            let aux = new_sol[to_truck][to];
-            new_sol[to_truck][to] = new_sol[from_truck][from];
-            new_sol[from_truck][from] = aux;
-
-            new_sol
         }
 
         fn cost(&self, sol: &Trucks) -> usize {
@@ -263,6 +266,24 @@ mod algo {
         trucks: Trucks,
     }
 
+    enum AnnealingMech {
+        ExponentialDescend,
+        BoltzmannCriteria,
+        CaucheEscheme,
+    }
+
+    impl AnnealingMech {
+        pub fn update(&self, temp: usize, alpha_iter: f64) -> usize {
+            match self {
+                Self::ExponentialDescend => alpha_iter as usize * temp,
+                Self::BoltzmannCriteria => {
+                    (temp as f64 / (1.0 + alpha_iter.log10())).floor() as usize
+                }
+                Self::CaucheEscheme => (temp as f64 / (1.0 + alpha_iter)).floor() as usize,
+            }
+        }
+    }
+
     impl SimulatedAnnealing {
         pub fn new(cost_mat: Costs, palets: Palets) -> Self {
             let mut x: [Vec<usize>; N_TRUCKS] = Default::default();
@@ -277,34 +298,50 @@ mod algo {
             }
         }
 
-
         pub fn run(&self) {
             let mut best_sol = self.gen_sol();
             let mut best_cost = self.cost(&best_sol);
 
-            // let mut visitados = HashSet::new();
+            let mut visitados = HashSet::new();
             let mut switch = true;
+            let lt = (MAX_COM as f64 / 1.3) as usize;
 
-            let lt = 100;
-            let mut temp = 1000;
+            let init_temp = best_cost;
+            let mut temp = init_temp;
 
-            let aceptacion = |cost_diff: isize, temp: usize| {
-                (-(cost_diff as f64) / temp as f64).exp() as usize
-            };
+            let ann_mech = AnnealingMech::CaucheEscheme;
 
-            while temp > 0 {
-                for _cont in 0..lt {
-                    let sol_cand = self.gen_neighbour(&best_sol, false);
+            let aceptacion = |delta: isize, t: usize| (-(delta as f64) / t as f64).exp() as usize;
+
+            let mut upgrade = true;
+            while temp > 0 && upgrade {
+                upgrade = false;
+                for cont in 0..lt {
+                    // Para no repetir candidatos
+                    visitados.clear();
+                    let mut sol_cand = self.gen_neighbour(&best_sol, CBT);
+                    while visitados.contains(&sol_cand) {
+                        sol_cand = self.gen_neighbour(&best_sol, CBT);
+                    }
+                    visitados.insert(sol_cand.clone());
+
                     let cost_cand = self.cost(&sol_cand);
-                    let delta_cost = best_cost as isize - cost_cand as isize;
-                    
-                    if rng::next_usize_range(0, 1) < aceptacion(delta_cost, temp) 
-                        || delta_cost < 0 {
+
+                    // Se calcula al reves debido a que buscamos un minimo no un maximo.
+                    let delta_cost = cost_cand as isize - best_cost as isize;
+
+                    if delta_cost < 0 || rng::next_usize_range(0, 1) < aceptacion(delta_cost, temp)
+                    {
                         best_cost = cost_cand;
                         best_sol = sol_cand;
+
+                        upgrade = true;
                     }
 
-                    temp = (0.5*temp as f64) as usize;
+                    temp = match ann_mech {
+                        AnnealingMech::ExponentialDescend => ann_mech.update(temp, ANN_CONST),
+                        _ => ann_mech.update(init_temp, cont as f64),
+                    };
                 }
             }
 
@@ -312,7 +349,6 @@ mod algo {
                 println!("Truck {}: {:?}", i, t);
             }
             println!("Coste: {}", best_cost)
-
         }
 
         fn gen_sol(&self) -> Trucks {
@@ -328,49 +364,11 @@ mod algo {
         }
 
         fn gen_neighbour(&self, sol: &Trucks, change_palets: bool) -> Trucks {
-            let mut nb = Self::two_op_in_truck(sol);
+            let mut nb = two_op_in_truck(sol);
             if change_palets {
-                nb = Self::two_op_within_truck(&nb);
+                nb = two_op_within_truck(&nb);
             }
             nb
-        }
-
-        fn two_op_in_truck(sol: &Trucks) -> Trucks {
-            let mut sol = sol.clone();
-            let truck = rng::next_usize() % N_TRUCKS;
-
-            let from = rng::next_usize() % TRUCK_CAP;
-            let mut to = rng::next_usize() % TRUCK_CAP;
-            while to == from {
-                to = rng::next_usize() % TRUCK_CAP;
-            }
-
-            let aux = sol[truck][to];
-            sol[truck][to] = sol[truck][from];
-            sol[truck][from] = aux;
-            sol
-        }
-
-        fn two_op_within_truck(sol: &Trucks) -> Trucks {
-            let mut new_sol = sol.clone();
-
-            let from_truck = rng::next_usize() % N_TRUCKS;
-            let mut to_truck = rng::next_usize() % N_TRUCKS;
-            while to_truck == from_truck {
-                to_truck = rng::next_usize() % N_TRUCKS;
-            }
-
-            let from = rng::next_usize() % TRUCK_CAP;
-            let mut to = rng::next_usize() % TRUCK_CAP;
-            while to == from {
-                to = rng::next_usize() % TRUCK_CAP;
-            }
-
-            let aux = new_sol[to_truck][to];
-            new_sol[to_truck][to] = new_sol[from_truck][from];
-            new_sol[from_truck][from] = aux;
-
-            new_sol
         }
 
         fn cost(&self, sol: &Trucks) -> usize {
@@ -385,7 +383,6 @@ mod algo {
             }
             cost
         }
-
     }
 }
 
@@ -394,8 +391,24 @@ fn main() {
 
     let cities = read_palets("../data/destinos_palets_84.txt");
     let distances = read_distances("../data/matriz_distancias_25.txt");
+
+    println!("\n\nRandom Search: ");
+    for _i in 0..5 {
+        let search = RandomSearch::new(distances, cities.clone());
+        search.run();
+        rng::set_new_seed(rng::get_time_usize());
+    }
+
+    println!("\n\nSimulated Annealing: ");
     for _i in 0..5 {
         let search = SimulatedAnnealing::new(distances, cities.clone());
+        search.run();
+        rng::set_new_seed(rng::get_time_usize());
+    }
+
+    println!("\n\nLocal Search: ");
+    for _i in 0..5 {
+        let search = LocalSearch::new(distances, cities.clone());
         search.run();
         rng::set_new_seed(rng::get_time_usize());
     }
@@ -424,7 +437,6 @@ mod rng {
 
     use rand;
     pub fn next_usize() -> usize {
-
         /*
         let mut next = CURRENT.load(Relaxed);
         next = (next + 1) * PRIME + (MASK ^ (next << 3) * PRIME) - (MASK ^ (next >> 2));
@@ -435,7 +447,7 @@ mod rng {
         rand::random()
     }
 
-    pub fn next_usize_range(min: usize, max:usize) -> usize {
-        rand::random::<usize>() % (max-min+1) + min
+    pub fn next_usize_range(min: usize, max: usize) -> usize {
+        rand::random::<usize>() % (max - min + 1) + min
     }
 }
