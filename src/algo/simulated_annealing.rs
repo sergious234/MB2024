@@ -15,11 +15,11 @@ enum AnnealingMech {
 }
 
 impl AnnealingMech {
-    pub fn update(&self, temp: usize, alpha_iter: f64) -> usize {
+    pub fn update(&self, temp: f64, alpha_iter: f64) -> f64 {
         match self {
-            Self::ExponentialDescend => alpha_iter as usize * temp,
-            Self::BoltzmannCriteria => (temp as f64 / (1.0 + alpha_iter.log10())).floor() as usize,
-            Self::CaucheEscheme => (temp as f64 / (1.0 + alpha_iter)).floor() as usize,
+            Self::ExponentialDescend => alpha_iter * temp,
+            Self::BoltzmannCriteria => temp / (1.0 + alpha_iter.log10()),
+            Self::CaucheEscheme => temp / (1.0 + alpha_iter),
         }
     }
 }
@@ -33,53 +33,40 @@ impl<'a> SimulatedAnnealing<'a> {
         }
     }
 
-    pub fn run(&self) {
+    pub fn run(&self) -> usize {
         let mut best_sol = self.gen_sol();
-        let mut best_cost = self.cost(&best_sol);
+        let mut best_cost = cost(&self.cost_mat, &best_sol);
 
-        let mut visitados = HashSet::new();
+        // let mut visitados = HashSet::new();
         let mut switch = true;
         let lt = 20;
 
-        let init_temp = (self.std_dev() / (N as f64).ln() ) as usize;
+        let init_temp = self.std_dev() / (N as f64).ln();
         let mut temp = init_temp;
 
         let ann_mech = AnnealingMech::ExponentialDescend;
 
-        let aceptacion = |delta: isize, t: usize| (-(delta as f64) / t as f64).exp() as usize;
-        let mut left_its = 50 * N;
+        let aceptacion = |delta: f64, t: f64| ((-delta) / t).exp();
+        let mut left_its = (50 * N) as isize;
 
         let mut upgrade = true;
-        while /*temp > 0 && */ upgrade && left_its > 0 {
-            left_its -= 1;
+        while upgrade && left_its > 0 {
             upgrade = false;
 
             for cont in 0..lt {
-                let mut sol_cand = gen_neighbour(&best_sol, switch);
-                let mut tries = MAX_TRIES;
+                let sol_cand = gen_neighbour(&best_sol, switch);
 
-                while visitados.contains(&sol_cand) && tries > 0 {
-                    sol_cand = gen_neighbour(&best_sol, switch);
-                    tries -= 1;
-                }
-
-                if tries == 0 {
-                    break;
-                }
-
-                visitados.insert(sol_cand.clone());
-                let cost_cand = self.cost(&sol_cand);
+                let cost_cand = cost(&self.cost_mat, &sol_cand);
+                left_its -= 1;
 
                 // Se calcula al reves debido a que buscamos un minimo no un maximo.
-                let delta_cost = cost_cand as isize - best_cost as isize;
+                let delta_cost = cost_cand as f64 - best_cost as f64;
 
-                if delta_cost < 0 || rng::next_usize_range(0, 1) < aceptacion(delta_cost, temp) {
+                if delta_cost < 0.0 || rng::next_f64_range(0.0, 1.0) < aceptacion(delta_cost, temp)
+                {
                     best_cost = cost_cand;
                     best_sol = sol_cand;
                     upgrade = true;
-
-                    // Para no repetir candidatos
-                    visitados.clear();
                 }
 
                 if CBT {
@@ -93,10 +80,13 @@ impl<'a> SimulatedAnnealing<'a> {
             }
         }
 
-        for (i, t) in best_sol.iter().enumerate() {
-            println!("Truck {}: {:?}", i, t);
-        }
-        println!("Coste: {}", best_cost);
+        /*
+                for (i, t) in best_sol.iter().enumerate() {
+                    println!("  Truck {}: {:?}", i, t);
+                }
+                println!("Coste: {}", best_cost);
+        */
+        best_cost
     }
 
     fn gen_sol(&self) -> Trucks {
@@ -110,31 +100,27 @@ impl<'a> SimulatedAnnealing<'a> {
         }
         new_sol
     }
-
-    fn cost(&self, sol: &Trucks) -> usize {
-        let mut cost = 0;
-        for truck in sol.iter() {
-            let mut actual_city = 0;
-            for city in truck.iter().map(|e| e - 1) {
-                cost += self.cost_mat[actual_city][city];
-                actual_city = city;
-            }
-            cost += self.cost_mat[actual_city][0];
-        }
-        cost
-    }
 }
 
 impl SimulatedAnnealing<'_> {
     fn std_dev(&self) -> f64 {
+        let sum: f64 = self
+            .cost_mat
+            .iter()
+            .enumerate()
+            .map(|(i, row)| row.iter().skip(i + 1).sum::<usize>())
+            .sum::<usize>() as f64;
+
+        /*
         let mut sum: f64 = 0.0;
         for i in 0..self.cost_mat.len() {
-            for j in i+1..self.cost_mat[i].len() {
+            for j in i + 1..self.cost_mat[i].len() {
                 sum += self.cost_mat[i][j] as f64;
             }
         }
+        */
 
-        let mean = sum / (((N*N+1) as f64) / 2.0);
+        let mean = sum / (((N * (N - 1)) as f64) / 2.0);
 
         let mut variance = 0.0;
         for i in 0..self.cost_mat.len() {

@@ -16,47 +16,50 @@ impl<'a> LocalSearch<'a> {
         }
     }
 
-    pub fn run(&self) {
+    pub fn run(&self) -> usize {
         let mut actual_sol = self.gen_sol();
         let mut best_sol = actual_sol.clone();
-        let mut best_cost = self.cost(&best_sol);
+        let mut best_cost = cost(&self.cost_mat, &best_sol);
 
         let mut it = 0;
 
         let mut visitados = HashSet::new();
         let mut switch = true;
-        'main_loop: while it < N_EVAL {
-            let mut next_sol = gen_neighbour(&actual_sol, switch);
-            visitados.clear();
-            visitados.insert(next_sol.clone());
 
-            while self.cost(&next_sol) >= best_cost {
-                next_sol = gen_neighbour(&actual_sol, switch);
-                let mut tries = MAX_TRIES;
-                while visitados.contains(&next_sol) && tries > 0 {
-                    next_sol = gen_neighbour(&actual_sol, switch);
+        'main_loop: while it < N_EVAL {
+            let mut tries = MAX_TRIES;
+            visitados.clear();
+            let next_sol = loop {
+                let next_sol = gen_neighbour(&actual_sol, switch);
+
+                if cost(&self.cost_mat, &next_sol) < best_cost {
+                    break next_sol;
+                }
+
+                if !visitados.insert(next_sol) {
                     tries -= 1;
                 }
-                if tries == 0 {
+
+                if CBT {
+                    switch = !switch;
+                }
+
+                if tries == 0 || it >= N_EVAL {
                     break 'main_loop;
                 }
-                visitados.insert(next_sol.clone());
-            }
+                it += 1;
+            };
 
-            if CBT {
-                switch = !switch;
-            }
-
-            best_sol = actual_sol.clone();
-            best_cost = self.cost(&best_sol);
+            best_sol = actual_sol;
+            best_cost = cost(&self.cost_mat, &best_sol);
             actual_sol = next_sol;
-            it += 1;
         }
 
         for (i, t) in best_sol.iter().enumerate() {
-            println!("Truck {}: {:?}", i, t);
+            println!("  Truck {}: {:?}", i, t);
         }
-        println!("Coste: {}", best_cost)
+        println!("Coste: {}", best_cost);
+        best_cost
     }
 
     fn gen_sol(&self) -> Trucks {
@@ -70,19 +73,4 @@ impl<'a> LocalSearch<'a> {
         }
         new_sol
     }
-
-    fn cost(&self, sol: &Trucks) -> usize {
-        let mut cost = 0;
-        for truck in sol.iter() {
-            let mut actual_city = 0;
-            for city in truck.iter().map(|e| e - 1) {
-                cost += self.cost_mat[actual_city][city];
-                actual_city = city;
-            }
-            cost += self.cost_mat[actual_city][0];
-        }
-        cost
-    }
 }
-
-

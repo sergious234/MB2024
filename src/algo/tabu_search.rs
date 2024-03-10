@@ -6,7 +6,7 @@ pub struct TabuSearch<'a> {
     palets: Palets,
     #[allow(unused)]
     trucks: Trucks,
-    tabu_mat: Vec<Vec<usize>>
+    tabu_mat: Vec<Vec<usize>>,
 }
 
 #[allow(dead_code)]
@@ -25,11 +25,11 @@ impl<'a> TabuSearch<'a> {
             cost_mat,
             palets,
             trucks: Default::default(),
-            tabu_mat:mat
+            tabu_mat: mat,
         }
     }
 
-    pub fn run(&self){
+    pub fn run(&self) {
         todo!()
     }
 }

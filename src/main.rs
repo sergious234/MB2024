@@ -1,3 +1,7 @@
+use std::io::Write;
+
+use crate::rng::get_time_usize;
+
 mod algo;
 
 #[allow(unused)]
@@ -8,32 +12,45 @@ fn main() {
     let distances = read_distances(DISTANCE_PATH);
 
     println!("\n\nRandom Search: ");
-    rng::set_new_seed(333);
+    rng::set_new_seed(get_time_usize());
     for _i in 0..5 {
         let search = RandomSearch::new(&distances, cities.clone());
         search.run();
     }
-
     println!("\n\nLocal Search: ");
-    rng::set_new_seed(333);
+    rng::set_new_seed(33);
     for _i in 0..5 {
         let search = LocalSearchBF::new(&distances, cities.clone());
         search.run();
     }
 
     println!("\n\nSimulated Annealing: ");
-    rng::set_new_seed(333);
-    for _i in 0..5 {
+    rng::set_new_seed(get_time_usize());
+    let mut best = usize::MAX;
+    for _i in 0..500 {
         let search = SimulatedAnnealing::new(&distances, cities.clone());
+        match search.run() {
+            n if n < best => best = n,
+            _ => {}
+        };
+        print!("\r{}/{}", _i, 500);
+        std::io::stdout().flush();
+    }
+    println!("\n{best}");
+
+    println!("\n\nGreedy: ");
+    for _i in 0..5 {
+        let search = Greedy::new(&distances, cities.clone());
         search.run();
     }
-
 }
 
 #[allow(unused)]
 mod rng {
     use std::sync::atomic::AtomicIsize;
     use std::sync::atomic::Ordering::Relaxed;
+
+    use rand::random;
 
     const SEED: usize = 333;
     const MASK: isize = 29871152;
@@ -58,7 +75,7 @@ mod rng {
         next as usize
     }
 
-    pub fn next_usize_range(min: usize, max: usize) -> usize {
-        rand::random::<usize>() % (max - min + 1) + min
+    pub fn next_f64_range(min: f64, max: f64) -> f64 {
+        rand::random::<f64>() % max
     }
 }
