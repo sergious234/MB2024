@@ -34,6 +34,7 @@ impl<'a> SimulatedAnnealing<'a> {
     }
 
     pub fn run(&self) -> usize {
+        use rand::random;
         let mut best_sol = self.gen_sol();
         let mut best_cost = cost(&self.cost_mat, &best_sol);
 
@@ -53,17 +54,19 @@ impl<'a> SimulatedAnnealing<'a> {
         while upgrade && left_its > 0 {
             upgrade = false;
 
+            // NOTE: Ask if this should be here or inside the
+            // for loop.
+            left_its -= 1;
+
             for cont in 0..lt {
                 let sol_cand = gen_neighbour(&best_sol, switch);
 
                 let cost_cand = cost(&self.cost_mat, &sol_cand);
-                left_its -= 1;
 
                 // Se calcula al reves debido a que buscamos un minimo no un maximo.
                 let delta_cost = cost_cand as f64 - best_cost as f64;
 
-                if delta_cost < 0.0 || rng::next_f64_range(0.0, 1.0) < aceptacion(delta_cost, temp)
-                {
+                if delta_cost < 0.0 || random::<f64>() < aceptacion(delta_cost, temp) {
                     best_cost = cost_cand;
                     best_sol = sol_cand;
                     upgrade = true;
@@ -80,12 +83,10 @@ impl<'a> SimulatedAnnealing<'a> {
             }
         }
 
-        /*
-                for (i, t) in best_sol.iter().enumerate() {
-                    println!("  Truck {}: {:?}", i, t);
-                }
-                println!("Coste: {}", best_cost);
-        */
+        for (i, t) in best_sol.iter().enumerate() {
+            println!("  Truck {}: {:?}", i, t);
+        }
+        println!("Coste: {}", best_cost);
         best_cost
     }
 
