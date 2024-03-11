@@ -58,7 +58,7 @@ const N_TRUCKS: usize = match LEVEL {
     Level::Large => 12,
 };
 
-const N_EVAL: usize = N * 1000;
+const N_EVAL: usize = N * 1_000;
 
 const TRUCK_CAP: usize = 14;
 const ANN_CONST: f64 = 0.99;
@@ -115,7 +115,7 @@ pub fn read_distances(file: &str) -> Costs {
 fn gen_neighbour(sol: &Trucks, change_palets: bool) -> Trucks {
     let mut nb = two_op_in_truck(sol);
     if change_palets {
-        nb = two_op_between_trucks(&nb);
+        two_op_between_trucks(&mut nb);
     }
     nb
 }
@@ -130,13 +130,14 @@ fn gen_neighbour_2(
     b: usize,
 ) -> Trucks {
     let mut nb = sol.clone();
-    let aux = nb[truck][a];
-    nb[truck][a] = nb[truck][b];
-    nb[truck][b] = aux;
     if change_palets {
         let aux = nb[truck][a];
         nb[truck][a] = nb[truck_b][b];
         nb[truck_b][b] = aux;
+    } else {
+        let aux = nb[truck][a];
+        nb[truck][a] = nb[truck][b];
+        nb[truck][b] = aux;
     }
     nb
 }
@@ -157,9 +158,7 @@ fn two_op_in_truck(sol: &Trucks) -> Trucks {
     sol
 }
 
-fn two_op_between_trucks(sol: &Trucks) -> Trucks {
-    let mut new_sol = sol.clone();
-
+fn two_op_between_trucks(new_sol: &mut Trucks) -> &mut Trucks {
     let from_truck = rng::next_usize() % N_TRUCKS;
     let mut to_truck = rng::next_usize() % N_TRUCKS;
 
@@ -183,7 +182,7 @@ fn two_op_between_trucks(sol: &Trucks) -> Trucks {
 fn cost(cost_mat: &Costs, sol: &Trucks) -> usize {
     let mut cost = 0;
 
-    let mut visited = HashSet::new();
+    let mut visited = HashSet::with_capacity(TRUCK_CAP);
     for truck in sol.iter() {
         let mut actual_city = 0;
         for city in truck.iter().map(|e| e - 1) {
@@ -193,7 +192,6 @@ fn cost(cost_mat: &Costs, sol: &Trucks) -> usize {
             }
         }
         visited.clear();
-
         cost += cost_mat[actual_city][0];
     }
     cost
