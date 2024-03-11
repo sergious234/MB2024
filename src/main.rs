@@ -1,8 +1,8 @@
-use std::io::Write;
-
 use crate::rng::get_time_usize;
 
 mod algo;
+
+const ITER_PER_ALGO: usize = 5;
 
 #[allow(unused)]
 fn main() {
@@ -13,36 +13,53 @@ fn main() {
 
     println!("\n\nRandom Search: ");
     rng::set_new_seed(get_time_usize());
-    for _i in 0..5 {
-        let search = RandomSearch::new(&distances, cities.clone());
-        search.run();
-    }
+    measure_time(|| {
+        for _i in 0..ITER_PER_ALGO {
+            let search = RandomSearch::new(&distances, cities.clone());
+            search.run();
+        }
+    });
     println!("\n\nLocal Search: ");
-    rng::set_new_seed(33);
-    for _i in 0..5 {
+    rng::set_new_seed(get_time_usize());
+
+    measure_time(|| {
+    for _i in 0..ITER_PER_ALGO {
         let search = LocalSearchBF::new(&distances, cities.clone());
         search.run();
-    }
+    }});
 
     println!("\n\nSimulated Annealing: ");
     rng::set_new_seed(get_time_usize());
-    let mut best = usize::MAX;
-    for _i in 0..500 {
+    measure_time(|| {
+    for _i in 0..ITER_PER_ALGO {
         let search = SimulatedAnnealing::new(&distances, cities.clone());
-        match search.run() {
-            n if n < best => best = n,
-            _ => {}
-        };
-        print!("\r{}/{}", _i, 500);
-        std::io::stdout().flush();
-    }
-    println!("\n{best}");
+        search.run();
+    }});
+
+    println!("\n\nTabu Search: ");
+    rng::set_new_seed(get_time_usize());
+    measure_time(|| {
+    for _i in 0..ITER_PER_ALGO {
+        let mut search = TabuSearch::new(&distances, cities.clone());
+        search.run();
+    }});
 
     println!("\n\nGreedy: ");
-    for _i in 0..5 {
+    measure_time(|| {
+    for _i in 0..ITER_PER_ALGO {
         let search = Greedy::new(&distances, cities.clone());
         search.run();
-    }
+    }});
+}
+
+fn measure_time(fun: impl FnOnce() -> ()) {
+    let current = std::time::Instant::now();
+    fun();
+    let end = std::time::Instant::now();
+    println!(
+        "{}ms per search",
+        end.duration_since(current).as_millis() / ITER_PER_ALGO as u128
+    );
 }
 
 #[allow(unused)]
@@ -69,10 +86,14 @@ mod rng {
     }
 
     pub fn next_usize() -> usize {
+        // NOTE: Homemade random number generator.
+        /*
         let mut next = CURRENT.load(Relaxed);
         next = (next + 1) * PRIME + (MASK ^ (next << 3) * PRIME) - (MASK ^ (next >> 2));
         CURRENT.store(next, Relaxed);
         next as usize
+        */
+        rand::random()
     }
 
     pub fn next_f64_range(min: f64, max: f64) -> f64 {
