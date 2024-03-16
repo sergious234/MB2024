@@ -16,34 +16,41 @@ impl<'a> Greedy<'a> {
         }
     }
 
-    pub fn run(&self) -> usize {
+    pub fn run(&self) -> Trucks {
         let mut sol = Trucks::default();
-        let mut pals = self.palets.clone();
+        let pals = self.palets.clone();
 
-        for truck in sol.iter_mut() {
-            truck.push(pals.pop().expect("There are no palets left"));
+        let mut lens = [0; N_TRUCKS];
 
-            let mut current_city = truck[0];
+        for pal in pals.into_iter() {
+            let mut best_truck = 0;
+            let mut best_cost = usize::MAX;
+            for (i, truck) in sol.iter().enumerate() {
+                let len = lens[i];
+                if len >= TRUCK_CAP {
+                    continue;
+                }
 
-            while truck.len() < TRUCK_CAP {
-                let (index, _) = pals
-                    .iter()
-                    .enumerate()
-                    .map(|(i, &p)| (i, self.cost_mat[current_city - 1][p - 1]))
-                    .min_by(|(_i, dist_a), (_j, dist_b)| dist_a.partial_cmp(dist_b).unwrap())
-                    .expect("You fucked up");
+                let cost = if len == 0 {
+                    self.cost_mat[0][pal as usize - 1]
+                } else {
+                    self.cost_mat[truck[len-1] as usize -1][pal as usize - 1]
+                };
 
-                let city = pals.remove(index);
-                truck.push(city);
-                current_city = city;
+                if cost < best_cost {
+                    best_cost = cost;
+                    best_truck = i;
+                }
             }
+
+
+            let last = lens[best_truck]; //sol[best_truck].len();
+            sol[best_truck][last] = pal;
+            lens[best_truck] += 1;
         }
 
-        for (i, t) in sol.iter().enumerate() {
-            println!("  Truck {}: {:?}", i, t);
-        }
-        let c = cost(self.cost_mat, &sol);
-        println!("Coste: {}", c);
-        c
+        let _c = cost(self.cost_mat, &sol);
+
+        sol
     }
 }

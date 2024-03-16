@@ -17,60 +17,32 @@ impl<'a> LocalSearch<'a> {
     }
 
     pub fn run(&self) -> usize {
-        let mut actual_sol = self.gen_sol();
-        let mut best_sol = actual_sol.clone();
-        let mut best_cost = cost(&self.cost_mat, &best_sol);
+        let mut best_sol = gen_sol(&self.palets);
+        let mut best_cost = cost(self.cost_mat, &best_sol);
 
         let mut it = 0;
 
-        let mut visitados = HashSet::new();
+        // let mut visitados = HashSet::new();
         let mut switch = true;
 
-        'main_loop: while it < N_EVAL {
-            let mut tries = MAX_TRIES;
-            visitados.clear();
-            let next_sol = loop {
-                let next_sol = gen_neighbour(&actual_sol, switch);
+        while it < N_EVAL {
+            it += 1;
+            let next_sol = gen_neighbour(&best_sol, switch);
 
-                if cost(&self.cost_mat, &next_sol) < best_cost {
-                    break next_sol;
-                }
+            if CBT {
+                switch = !switch;
+            }
 
-                if !visitados.insert(next_sol) {
-                    tries -= 1;
-                }
 
-                if CBT {
-                    switch = !switch;
-                }
+            let next_cost = cost(self.cost_mat, &next_sol);
 
-                if tries == 0 || it >= N_EVAL {
-                    break 'main_loop;
-                }
-                it += 1;
-            };
-
-            best_sol = actual_sol;
-            best_cost = cost(&self.cost_mat, &best_sol);
-            actual_sol = next_sol;
+            if next_cost < best_cost {
+                best_sol = next_sol;
+                best_cost = next_cost;
+            }
         }
 
-        for (i, t) in best_sol.iter().enumerate() {
-            println!("  Truck {}: {:?}", i, t);
-        }
         println!("Coste: {}", best_cost);
         best_cost
-    }
-
-    fn gen_sol(&self) -> Trucks {
-        let mut new_sol = Trucks::default();
-        for pal in self.palets.iter().cloned() {
-            let mut to_truck = rng::next_usize() % N_TRUCKS;
-            while new_sol[to_truck].len() >= TRUCK_CAP {
-                to_truck = rng::next_usize() % N_TRUCKS;
-            }
-            new_sol[to_truck].push(pal);
-        }
-        new_sol
     }
 }

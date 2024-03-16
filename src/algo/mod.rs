@@ -12,6 +12,9 @@ pub use simulated_annealing::SimulatedAnnealing;
 mod tabu_search;
 pub use tabu_search::TabuSearch;
 
+mod greedy_exp;
+pub use greedy_exp::GreedyExp;
+
 mod greedy;
 pub use greedy::Greedy;
 
@@ -58,27 +61,21 @@ const N_TRUCKS: usize = match LEVEL {
     Level::Large => 12,
 };
 
-const N_EVAL: usize = N * 1_000;
+const N_EVAL: usize = N * 5_000;
 
 const TRUCK_CAP: usize = 14;
-const ANN_CONST: f64 = 0.99;
+const ANN_CONST: f64 = 0.95;
 
 /// Change Between Trucks
 const CBT: bool = true;
 
 #[allow(dead_code)]
-const MAX_COM: usize = if CBT {
-    (N_TRUCKS * N_TRUCKS) * ((TRUCK_CAP * (TRUCK_CAP - 1)) / 2)
-} else {
-    (TRUCK_CAP * (TRUCK_CAP - 1)) / 2
-};
-
 const MAX_TRIES: usize = 500;
 
 /// N x N Matriz
 type Costs = Vec<Vec<usize>>;
-type Palets = Vec<usize>;
-type Trucks = [Vec<usize>; N_TRUCKS];
+type Palets = Vec<u16>;
+type Trucks = [[u16; TRUCK_CAP]; N_TRUCKS];
 
 pub fn read_palets(file: &str) -> Palets {
     let content = read_to_string(file);
@@ -90,8 +87,7 @@ pub fn read_palets(file: &str) -> Palets {
 }
 
 pub fn read_distances(file: &str) -> Costs {
-    let content = read_to_string(file);
-    let content: Vec<Vec<usize>> = content
+    read_to_string(file)
         .expect("Could not read the distances file")
         .lines()
         .map(|l| {
@@ -99,17 +95,7 @@ pub fn read_distances(file: &str) -> Costs {
                 .map(|l| l.trim().parse().expect("Couldnt parse the value"))
                 .collect::<Vec<usize>>()
         })
-        .collect();
-
-    let mut costs: Costs = Costs::default();
-
-    for i in 0..N {
-        costs.push(Vec::with_capacity(N));
-        for j in 0..N {
-            costs[i].push(content[i][j]);
-        }
-    }
-    costs
+        .collect::<Costs>()
 }
 
 fn gen_neighbour(sol: &Trucks, change_palets: bool) -> Trucks {
@@ -129,21 +115,19 @@ fn gen_neighbour_2(
     a: usize,
     b: usize,
 ) -> Trucks {
-    let mut nb = sol.clone();
+    let mut nb = *sol;
     if change_palets {
         let aux = nb[truck][a];
         nb[truck][a] = nb[truck_b][b];
         nb[truck_b][b] = aux;
     } else {
-        let aux = nb[truck][a];
-        nb[truck][a] = nb[truck][b];
-        nb[truck][b] = aux;
+        nb[truck].swap(a, b)
     }
     nb
 }
 
 fn two_op_in_truck(sol: &Trucks) -> Trucks {
-    let mut sol = sol.clone();
+    let mut sol = *sol;
     let truck = rng::next_usize() % N_TRUCKS;
 
     let from = rng::next_usize() % TRUCK_CAP;
@@ -152,9 +136,7 @@ fn two_op_in_truck(sol: &Trucks) -> Trucks {
         to = rng::next_usize() % TRUCK_CAP;
     }
 
-    let aux = sol[truck][to];
-    sol[truck][to] = sol[truck][from];
-    sol[truck][from] = aux;
+    sol[truck].swap(to, from);
     sol
 }
 
@@ -179,20 +161,45 @@ fn two_op_between_trucks(new_sol: &mut Trucks) -> &mut Trucks {
     new_sol
 }
 
-fn cost(cost_mat: &Costs, sol: &Trucks) -> usize {
+pub fn cost(cost_mat: &Costs, sol: &Trucks) -> usize {
     let mut cost = 0;
+    let mut visited;
+    let mut actual_city;
 
-    let mut visited = HashSet::with_capacity(TRUCK_CAP);
     for truck in sol.iter() {
-        let mut actual_city = 0;
-        for city in truck.iter().map(|e| e - 1) {
-            if visited.insert(city) {
-                cost += cost_mat[actual_city][city];
-                actual_city = city;
-            }
-        }
-        visited.clear();
-        cost += cost_mat[actual_city][0];
+        visited = [false; N];
+        actual_city = 0;
+        visited[0] = true;
+        cost += truck
+            .iter()
+            .map(|e| (e - 1) as usize)
+            .filter_map(|x| {
+                (!visited[x]).then(|| {
+                    let c = cost_mat[actual_city][x];
+                    visited[x] = true;
+                    actual_city = x;
+                    c
+                })
+            })
+            .sum::<usize>()
+            + cost_mat[actual_city][0];
     }
+
     cost
+}
+
+fn gen_sol(palets: &Palets) -> Trucks {
+    let mut new_sol = Trucks::default();
+    let mut lens = [0; N_TRUCKS];
+    for pal in palets.iter().cloned() {
+        let mut to_truck = rng::next_usize() % N_TRUCKS;
+        let mut last = lens[to_truck];
+        while last >= TRUCK_CAP {
+            to_truck = rng::next_usize() % N_TRUCKS;
+            last = lens[to_truck];
+        }
+        new_sol[to_truck][last] = pal;
+        lens[to_truck] += 1;
+    }
+    new_sol
 }

@@ -1,3 +1,5 @@
+use crate::rng::{get_time_usize, next_f64_range, next_usize};
+
 use super::*;
 
 #[allow(dead_code)]
@@ -29,26 +31,34 @@ impl<'a> TabuSearch<'a> {
     }
 
     pub fn run(&mut self) -> usize {
-        let mut best_sol = self.gen_sol();
-        let mut best_cost = cost(self.cost_mat, &best_sol);
+        let greedy_sol = Greedy::new(self.cost_mat, self.palets.clone()).run();
+
+        let mut elite = gen_sol(&self.palets);
+        let mut elite_cost = cost(self.cost_mat, &elite);
+        let tabu_size = 100;
+
+        let mut tabu_time = 4;
 
         let mut it = 0;
-        let is_aspirant = |cost, best_cost| cost < best_cost - 200;
+
+        let mut best_neigh_cost = elite_cost;
+        let mut best_neigh_sol = elite.clone();
 
         while it < N_EVAL {
             let mut candidates = vec![];
 
-            for _ in 0..30 {
-                let from: usize = rand::random::<usize>() % N_TRUCKS;
-                let mut to: usize = rand::random::<usize>() % N_TRUCKS;
+            for _ in 0..tabu_size {
+                let from: usize = next_usize() % N_TRUCKS;
+                let mut to: usize = next_usize() % N_TRUCKS;
 
-                let truck_a: usize = rand::random::<usize>() % N_TRUCKS;
-                let truck_b: usize = rand::random::<usize>() % N_TRUCKS;
+                let truck_a: usize = next_usize() % N_TRUCKS;
+                let truck_b: usize = next_usize() % N_TRUCKS;
 
                 while to == from {
-                    to = rand::random::<usize>() % N_TRUCKS;
+                    to = next_usize() % N_TRUCKS;
                 }
-                let cand_sol = gen_neighbour_2(&best_sol, true, truck_a, truck_b, from, to);
+
+                let cand_sol = gen_neighbour_2(&best_neigh_sol, true, truck_a, truck_b, from, to);
                 let cand_cost = cost(self.cost_mat, &cand_sol);
 
                 candidates.push(((from, to), cand_cost, cand_sol));
@@ -58,28 +68,17 @@ impl<'a> TabuSearch<'a> {
             // Sort by cost
             candidates.sort_by(|a, b| a.1.cmp(&b.1));
 
-            let mut best_neigh_cost = usize::MAX;
-            let mut best_neigh_sol = None;
-
             for cand in candidates {
                 let is_tabu = self.tabu_mat[cand.0 .0][cand.0 .1] > 0;
 
-                // TODO: Ask if a worst candidate should always be selected or only
-                // if it meets a criteria
-                if !is_tabu && (cand.1 < best_cost || cand.1 >= best_cost + best_cost / 4) {
-                    best_neigh_sol = Some(cand.2);
+                if !is_tabu {
+                    best_neigh_sol = cand.2;
                     best_neigh_cost = cand.1;
-                    self.tabu_mat[cand.0 .0][cand.0 .1] = 3;
-                    break;
-                }
-                if is_tabu && is_aspirant(cand.1, best_cost) {
-                    best_neigh_sol = Some(cand.2);
-                    best_neigh_cost = cand.1;
-                    self.tabu_mat[cand.0 .0][cand.0 .1] = 3;
+                    self.tabu_mat[cand.0 .0][cand.0 .1] = tabu_time;
                     break;
                 }
 
-                // NOTE: Fails about 45k times because of the Tabu Mat in
+                // NOTE: Fails about 20 times because of the Tabu Mat in
                 // the Large file.
             }
 
@@ -91,28 +90,36 @@ impl<'a> TabuSearch<'a> {
                 }
             }
 
-            if best_neigh_cost < best_cost {
-                best_sol = best_neigh_sol.expect("No neighbour was found! :( ");
-                best_cost = best_neigh_cost;
+            if it % (500 * N) == 0 {
+                let u = next_f64_range(0.0, 1.0);
+
+                if u < 0.25 {
+                    best_neigh_sol = gen_sol(&self.palets);
+                } else if u < 0.5 {
+                    best_neigh_sol = greedy_sol.clone();
+                } else {
+                    best_neigh_sol = elite.clone();
+                }
+
+                best_neigh_cost = cost(self.cost_mat, &best_neigh_sol);
+
+                if u < 0.5 {
+                    tabu_time += tabu_time / 2;
+                } else {
+                    tabu_time /= 2;
+                    if tabu_time < 1 {
+                        tabu_time = 1;
+                    }
+                }
+            }
+
+            if best_neigh_cost < elite_cost{
+                elite = best_neigh_sol.clone();
+                elite_cost  = best_neigh_cost;
             }
         }
 
-        for (i, t) in best_sol.iter().enumerate() {
-            println!("  Truck {}: {:?}", i, t);
-        }
-        println!("Coste: {}", best_cost);
-        best_cost
-    }
-
-    fn gen_sol(&self) -> Trucks {
-        let mut new_sol = Trucks::default();
-        for pal in self.palets.iter().cloned() {
-            let mut to_truck = rng::next_usize() % N_TRUCKS;
-            while new_sol[to_truck].len() >= TRUCK_CAP {
-                to_truck = rng::next_usize() % N_TRUCKS;
-            }
-            new_sol[to_truck].push(pal);
-        }
-        new_sol
+        println!("Coste: {}", elite_cost);
+        elite_cost
     }
 }

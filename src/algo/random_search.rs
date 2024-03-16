@@ -1,3 +1,9 @@
+use std::borrow::BorrowMut;
+
+use rand::{
+    rngs::{SmallRng, StdRng}, Rng, RngCore, SeedableRng
+};
+
 use super::*;
 
 pub struct RandomSearch<'a> {
@@ -5,51 +11,51 @@ pub struct RandomSearch<'a> {
     palets: Palets,
     #[allow(unused)]
     trucks: Trucks,
+    rng: &'a mut SmallRng
 }
 
 impl<'a> RandomSearch<'a> {
-    pub fn new(cost_mat: &'a Costs, palets: Palets) -> Self {
+    pub fn new(cost_mat: &'a Costs, palets: Palets, rng: &'a mut SmallRng) -> Self {
         Self {
             cost_mat,
             palets,
             trucks: Default::default(),
+            rng
         }
     }
 
-    pub fn run(&self) -> usize {
+    pub fn run(&mut self) -> usize {
         let mut it = 0;
 
-        let mut best_sol = self.gen_sol();
-        let mut best_cost = cost(&self.cost_mat, &best_sol);
+        let mut _best_sol = self.gen_sol();
+        let mut best_cost = cost(self.cost_mat, &_best_sol);
         while it < N_EVAL {
             let sol = self.gen_sol();
-            let new_cost = cost(&self.cost_mat, &sol);
+            let new_cost = cost(self.cost_mat, &sol);
 
             if new_cost < best_cost {
-                best_sol = sol;
+                _best_sol = sol;
                 best_cost = new_cost;
             }
             it += 1;
         }
 
-        for (i, t) in best_sol.iter().enumerate() {
-            println!("  Truck {}: {:?}", i, t);
-        }
         println!("Coste: {}", best_cost);
         best_cost
     }
 
-    fn gen_sol(&self) -> Trucks {
+    fn gen_sol(&mut self) -> Trucks {
         let mut new_sol = Trucks::default();
-        for i in 0..new_sol.len() {
-            new_sol[i] = Vec::with_capacity(TRUCK_CAP);
-        }
-        for pal in self.palets.iter() {
-            let mut to_truck = rng::next_usize() % N_TRUCKS;
-            while new_sol[to_truck].len() >= TRUCK_CAP {
-                to_truck = rng::next_usize() % N_TRUCKS;
+        let mut lens = [0; N_TRUCKS];
+        for pal in self.palets.iter().cloned() {
+            let mut to_truck = self.rng.next_u64() as usize % N_TRUCKS;
+            let mut last = lens[to_truck];
+            while last >= TRUCK_CAP {
+                to_truck = self.rng.next_u64() as usize % N_TRUCKS;
+                last = lens[to_truck];
             }
-            new_sol[to_truck].push(*pal);
+            new_sol[to_truck][last] = pal;
+            lens[to_truck] += 1;
         }
         new_sol
     }

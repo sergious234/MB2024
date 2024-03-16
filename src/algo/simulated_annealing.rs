@@ -1,4 +1,6 @@
-use super::*;
+use crate::rng::next_f64_range;
+use crate::algo::*;
+
 
 pub struct SimulatedAnnealing<'a> {
     cost_mat: &'a Costs,
@@ -34,13 +36,12 @@ impl<'a> SimulatedAnnealing<'a> {
     }
 
     pub fn run(&self) -> usize {
-        use rand::random;
-        let mut best_sol = self.gen_sol();
-        let mut best_cost = cost(&self.cost_mat, &best_sol);
+        let mut best_sol = gen_sol(&self.palets);
+        let mut best_cost = cost(self.cost_mat, &best_sol);
 
         // let mut visitados = HashSet::new();
         let mut switch = true;
-        let lt = 20;
+        let lt = 100;
 
         let init_temp = self.std_dev() / (N as f64).ln();
         let mut temp = init_temp;
@@ -48,58 +49,36 @@ impl<'a> SimulatedAnnealing<'a> {
         let ann_mech = AnnealingMech::ExponentialDescend;
 
         let aceptacion = |delta: f64, t: f64| ((-delta) / t).exp();
-        let mut left_its = (50 * N) as isize;
+        let mut left_ann = 0;
+        let mut left_its = 0;
 
-        let mut upgrade = true;
-        while upgrade && left_its > 0 {
-            upgrade = false;
+        while left_ann < 50 * N && left_its < 5_000 * N {
+            left_ann += 1;
 
-            // NOTE: Ask if this should be here or inside the
-            // for loop.
-            left_its -= 1;
-
-            for cont in 0..lt {
+            for _ in 0..lt {
                 let sol_cand = gen_neighbour(&best_sol, switch);
+                let cost_cand = cost(self.cost_mat, &sol_cand);
 
-                let cost_cand = cost(&self.cost_mat, &sol_cand);
-
-                // Se calcula al reves debido a que buscamos un minimo no un maximo.
+                left_its += 1;
                 let delta_cost = cost_cand as f64 - best_cost as f64;
 
-                if delta_cost < 0.0 || random::<f64>() < aceptacion(delta_cost, temp) {
+                if delta_cost < 0.0 || next_f64_range(0.0, 1.0) < aceptacion(delta_cost, temp) {
                     best_cost = cost_cand;
                     best_sol = sol_cand;
-                    upgrade = true;
                 }
 
                 if CBT {
                     switch = !switch;
                 }
-
-                temp = match ann_mech {
-                    AnnealingMech::ExponentialDescend => ann_mech.update(temp, ANN_CONST),
-                    _ => ann_mech.update(init_temp, cont as f64),
-                };
             }
-        }
 
-        for (i, t) in best_sol.iter().enumerate() {
-            println!("  Truck {}: {:?}", i, t);
+            temp = match ann_mech {
+                AnnealingMech::ExponentialDescend => ann_mech.update(temp, ANN_CONST),
+                _ => ann_mech.update(init_temp, left_its as f64),
+            };
         }
-        println!("Coste: {}", best_cost);
+        // println!("Coste: {}", best_cost);
         best_cost
-    }
-
-    fn gen_sol(&self) -> Trucks {
-        let mut new_sol = Trucks::default();
-        for pal in self.palets.iter().cloned() {
-            let mut to_truck = rng::next_usize() % N_TRUCKS;
-            while new_sol[to_truck].len() >= TRUCK_CAP {
-                to_truck = rng::next_usize() % N_TRUCKS;
-            }
-            new_sol[to_truck].push(pal);
-        }
-        new_sol
     }
 }
 
@@ -112,23 +91,14 @@ impl SimulatedAnnealing<'_> {
             .map(|(i, row)| row.iter().skip(i + 1).sum::<usize>())
             .sum::<usize>() as f64;
 
-        /*
-        let mut sum: f64 = 0.0;
-        for i in 0..self.cost_mat.len() {
-            for j in i + 1..self.cost_mat[i].len() {
-                sum += self.cost_mat[i][j] as f64;
-            }
-        }
-        */
-
         let mean = sum / (((N * (N - 1)) as f64) / 2.0);
 
-        let mut variance = 0.0;
+        let mut variance: f64 = 0.0;
         for i in 0..self.cost_mat.len() {
-            for j in i..self.cost_mat[i].len() {
+            for j in i + 1..self.cost_mat[i].len() {
                 variance += (self.cost_mat[i][j] as f64 - mean).powi(2);
             }
         }
-        (variance / 2.0).sqrt().floor()
+        (variance / (N * (N - 1)) as f64 / 2.0).sqrt().floor()
     }
 }
