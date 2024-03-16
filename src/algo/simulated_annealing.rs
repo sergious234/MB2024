@@ -1,6 +1,7 @@
-use crate::rng::next_f64_range;
-use crate::algo::*;
+use std::ops::Div;
 
+use crate::algo::*;
+use crate::rng::next_f64_range;
 
 pub struct SimulatedAnnealing<'a> {
     cost_mat: &'a Costs,
@@ -39,7 +40,6 @@ impl<'a> SimulatedAnnealing<'a> {
         let mut best_sol = gen_sol(&self.palets);
         let mut best_cost = cost(self.cost_mat, &best_sol);
 
-        // let mut visitados = HashSet::new();
         let mut switch = true;
         let lt = 100;
 
@@ -52,14 +52,17 @@ impl<'a> SimulatedAnnealing<'a> {
         let mut left_ann = 0;
         let mut left_its = 0;
 
-        while left_ann < 50 * N && left_its < 5_000 * N {
+        const TOTAL_ANN: usize = 50 * N;
+        const TOTAL_ITS: usize = 5_000 * N;
+
+        while left_ann < TOTAL_ANN && left_its < TOTAL_ITS {
             left_ann += 1;
 
             for _ in 0..lt {
                 let sol_cand = gen_neighbour(&best_sol, switch);
                 let cost_cand = cost(self.cost_mat, &sol_cand);
-
                 left_its += 1;
+
                 let delta_cost = cost_cand as f64 - best_cost as f64;
 
                 if delta_cost < 0.0 || next_f64_range(0.0, 1.0) < aceptacion(delta_cost, temp) {
@@ -77,13 +80,14 @@ impl<'a> SimulatedAnnealing<'a> {
                 _ => ann_mech.update(init_temp, left_its as f64),
             };
         }
-        // println!("Coste: {}", best_cost);
+        println!("Coste: {}", best_cost);
         best_cost
     }
 }
 
 impl SimulatedAnnealing<'_> {
     fn std_dev(&self) -> f64 {
+        const ITEMS: f64 = ((N * (N - 1)) as f64) / 2.0;
         let sum: f64 = self
             .cost_mat
             .iter()
@@ -91,14 +95,20 @@ impl SimulatedAnnealing<'_> {
             .map(|(i, row)| row.iter().skip(i + 1).sum::<usize>())
             .sum::<usize>() as f64;
 
-        let mean = sum / (((N * (N - 1)) as f64) / 2.0);
+        let mean = sum / ITEMS;
 
-        let mut variance: f64 = 0.0;
-        for i in 0..self.cost_mat.len() {
-            for j in i + 1..self.cost_mat[i].len() {
-                variance += (self.cost_mat[i][j] as f64 - mean).powi(2);
-            }
-        }
-        (variance / (N * (N - 1)) as f64 / 2.0).sqrt().floor()
+        self.cost_mat
+            .iter()
+            .enumerate()
+            .map(|(i, row)| {
+                row.iter()
+                    .skip(i + 1)
+                    .map(|&e| (e as f64 - mean).powi(2))
+                    .sum::<f64>()
+            })
+            .sum::<f64>()
+            .div(ITEMS)
+            .sqrt()
+            .floor()
     }
 }

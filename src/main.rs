@@ -1,17 +1,13 @@
+use practica_one::rng;
 use rand::{rngs::SmallRng, SeedableRng};
 
-
+use practica_one::algo::*;
 #[allow(unused)]
 use practica_one::rng::{get_time_usize, next_f64_range};
-use practica_one::rng;
-pub mod algo;
-
 const ITER_PER_ALGO: usize = 5;
 
 #[allow(unused)]
 fn main() {
-    use algo::*;
-
     let cities = read_palets(PALETS_PATH);
     let distances = read_distances(DISTANCE_PATH);
 
@@ -69,5 +65,3 @@ fn measure_time(fun: impl FnOnce()) {
         end.duration_since(current).as_millis() / ITER_PER_ALGO as u128
     );
 }
-
-

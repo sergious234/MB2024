@@ -34,7 +34,7 @@ impl<'a> Greedy<'a> {
                 let cost = if len == 0 {
                     self.cost_mat[0][pal as usize - 1]
                 } else {
-                    self.cost_mat[truck[len-1] as usize -1][pal as usize - 1]
+                    self.cost_mat[truck[len - 1] as usize - 1][pal as usize - 1]
                 };
 
                 if cost < best_cost {
@@ -42,7 +42,6 @@ impl<'a> Greedy<'a> {
                     best_truck = i;
                 }
             }
-
 
             let last = lens[best_truck]; //sol[best_truck].len();
             sol[best_truck][last] = pal;

@@ -1,4 +1,4 @@
-use crate::rng::{get_time_usize, next_f64_range, next_usize};
+use crate::rng::{next_f64_range, next_usize};
 
 use super::*;
 
@@ -42,7 +42,7 @@ impl<'a> TabuSearch<'a> {
         let mut it = 0;
 
         let mut best_neigh_cost = elite_cost;
-        let mut best_neigh_sol = elite.clone();
+        let mut best_neigh_sol = elite;
 
         while it < N_EVAL {
             let mut candidates = vec![];
@@ -96,9 +96,9 @@ impl<'a> TabuSearch<'a> {
                 if u < 0.25 {
                     best_neigh_sol = gen_sol(&self.palets);
                 } else if u < 0.5 {
-                    best_neigh_sol = greedy_sol.clone();
+                    best_neigh_sol = greedy_sol;
                 } else {
-                    best_neigh_sol = elite.clone();
+                    best_neigh_sol = elite;
                 }
 
                 best_neigh_cost = cost(self.cost_mat, &best_neigh_sol);
@@ -113,9 +113,9 @@ impl<'a> TabuSearch<'a> {
                 }
             }
 
-            if best_neigh_cost < elite_cost{
-                elite = best_neigh_sol.clone();
-                elite_cost  = best_neigh_cost;
+            if best_neigh_cost < elite_cost {
+                elite = best_neigh_sol;
+                elite_cost = best_neigh_cost;
             }
         }
 

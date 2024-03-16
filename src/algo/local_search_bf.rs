@@ -32,8 +32,6 @@ impl<'a> LocalSearch<'a> {
             if CBT {
                 switch = !switch;
             }
-
-
             let next_cost = cost(self.cost_mat, &next_sol);
 
             if next_cost < best_cost {

@@ -32,7 +32,6 @@ pub mod rng {
         next = (next + 1) * PRIME + (MASK ^ (next << 3) * PRIME) - (MASK ^ (next >> 2));
         CURRENT.store(next, Relaxed);
         next as usize
-
     }
 
     pub fn next_f64_range(min: f64, max: f64) -> f64 {

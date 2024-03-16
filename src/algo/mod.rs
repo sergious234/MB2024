@@ -1,5 +1,3 @@
-#![allow(unused_imports)]
-
 mod random_search;
 pub use random_search::RandomSearch;
 
@@ -19,7 +17,7 @@ mod greedy;
 pub use greedy::Greedy;
 
 use super::rng;
-use std::{collections::HashSet, fs::read_to_string, usize};
+use std::fs::read_to_string;
 
 #[allow(dead_code)]
 enum Level {
@@ -31,14 +29,14 @@ enum Level {
 const LEVEL: Level = Level::Large;
 
 pub const PALETS_PATH: &str = match LEVEL {
-    Level::Small => "../data/destinos_palets_84.txt",
-    Level::Medium => "../data/destinos_palets_126.txt",
-    Level::Large => "../data/destinos_palets_168.txt",
+    Level::Small => "data/destinos_palets_84.txt",
+    Level::Medium => "data/destinos_palets_126.txt",
+    Level::Large => "data/destinos_palets_168.txt",
 };
 pub const DISTANCE_PATH: &str = match LEVEL {
-    Level::Small => "../data/matriz_distancias_25.txt",
-    Level::Medium => "../data/matriz_distancias_38.txt",
-    Level::Large => "../data/matriz_distancias_50.txt",
+    Level::Small => "data/matriz_distancias_25.txt",
+    Level::Medium => "data/matriz_distancias_38.txt",
+    Level::Large => "data/matriz_distancias_50.txt",
 };
 
 #[allow(unused)]
@@ -68,9 +66,6 @@ const ANN_CONST: f64 = 0.95;
 
 /// Change Between Trucks
 const CBT: bool = true;
-
-#[allow(dead_code)]
-const MAX_TRIES: usize = 500;
 
 /// N x N Matriz
 type Costs = Vec<Vec<usize>>;

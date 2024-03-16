@@ -1,8 +1,4 @@
-use std::borrow::BorrowMut;
-
-use rand::{
-    rngs::{SmallRng, StdRng}, Rng, RngCore, SeedableRng
-};
+use rand::{rngs::SmallRng, RngCore};
 
 use super::*;
 
@@ -11,7 +7,7 @@ pub struct RandomSearch<'a> {
     palets: Palets,
     #[allow(unused)]
     trucks: Trucks,
-    rng: &'a mut SmallRng
+    rng: &'a mut SmallRng,
 }
 
 impl<'a> RandomSearch<'a> {
@@ -20,7 +16,7 @@ impl<'a> RandomSearch<'a> {
             cost_mat,
             palets,
             trucks: Default::default(),
-            rng
+            rng,
         }
     }
 
