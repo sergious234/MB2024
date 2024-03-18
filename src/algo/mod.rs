@@ -68,9 +68,10 @@ const ANN_CONST: f64 = 0.95;
 const CBT: bool = true;
 
 /// N x N Matriz
+type Palet = u8;
 type Costs = Vec<Vec<usize>>;
-type Palets = Vec<u16>;
-type Trucks = [[u16; TRUCK_CAP]; N_TRUCKS];
+type Palets = Vec<Palet>;
+type Trucks = [[Palet; TRUCK_CAP]; N_TRUCKS];
 
 pub fn read_palets(file: &str) -> Palets {
     let content = read_to_string(file);
@@ -116,7 +117,7 @@ fn gen_neighbour_2(
         nb[truck][a] = nb[truck_b][b];
         nb[truck_b][b] = aux;
     } else {
-        nb[truck].swap(a, b)
+        nb[truck].swap(a, b);
     }
     nb
 }

@@ -80,7 +80,9 @@ impl<'a> SimulatedAnnealing<'a> {
                 _ => ann_mech.update(init_temp, left_its as f64),
             };
         }
-        println!("Coste: {}", best_cost);
+
+        // println!("Evals: {}", left_its);
+        // println!("Coste: {}", best_cost);
         best_cost
     }
 }

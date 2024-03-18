@@ -9,7 +9,7 @@ pub mod rng {
     use rand::rngs::SmallRng;
     use rand::{random, RngCore, SeedableRng};
 
-    const SEED: usize = 333;
+    pub const SEED: usize = 334;
     const MASK: isize = 29871152;
     const PRIME: isize = 65539;
     static CURRENT: AtomicIsize = AtomicIsize::new(SEED as isize);
@@ -37,6 +37,5 @@ pub mod rng {
     pub fn next_f64_range(min: f64, max: f64) -> f64 {
         let x = next_usize() as f64 / (usize::MAX as f64);
         min + (max - min) * (x)
-        //rand::random::<f64>() % max
     }
 }

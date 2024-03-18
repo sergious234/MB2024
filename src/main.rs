@@ -3,7 +3,7 @@ use rand::{rngs::SmallRng, SeedableRng};
 
 use practica_one::algo::*;
 #[allow(unused)]
-use practica_one::rng::{get_time_usize, next_f64_range};
+use practica_one::rng::{get_time_usize, next_f64_range, SEED};
 const ITER_PER_ALGO: usize = 5;
 
 #[allow(unused)]
@@ -12,8 +12,7 @@ fn main() {
     let distances = read_distances(DISTANCE_PATH);
 
     println!("\n\nRandom Search: ");
-    let mut rng = SmallRng::seed_from_u64(33);
-    rng::set_new_seed(33);
+    let mut rng = SmallRng::seed_from_u64(SEED as u64);
     measure_time(|| {
         for _i in 0..ITER_PER_ALGO {
             let mut search = RandomSearch::new(&distances, cities.clone(), &mut rng);
@@ -22,7 +21,7 @@ fn main() {
     });
 
     println!("\n\nLocal Search: ");
-    rng::set_new_seed(33);
+    rng::set_new_seed(SEED);
     measure_time(|| {
         for _i in 0..ITER_PER_ALGO {
             let search = LocalSearchBF::new(&distances, cities.clone());
@@ -31,7 +30,7 @@ fn main() {
     });
 
     println!("\n\nSimulated Annealing: ");
-    rng::set_new_seed(33);
+    rng::set_new_seed(SEED);
     measure_time(|| {
         for _i in 0..ITER_PER_ALGO {
             let search = SimulatedAnnealing::new(&distances, cities.clone());
@@ -40,7 +39,7 @@ fn main() {
     });
 
     println!("\n\nTabu Search: ");
-    rng::set_new_seed(33);
+    rng::set_new_seed(SEED);
     measure_time(|| {
         for _i in 0..ITER_PER_ALGO {
             let mut search = TabuSearch::new(&distances, cities.clone());

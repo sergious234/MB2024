@@ -35,7 +35,7 @@ impl<'a> TabuSearch<'a> {
 
         let mut elite = gen_sol(&self.palets);
         let mut elite_cost = cost(self.cost_mat, &elite);
-        let tabu_size = 100;
+        let tabu_size = 60;
 
         let mut tabu_time = 4;
 
@@ -71,7 +71,7 @@ impl<'a> TabuSearch<'a> {
             for cand in candidates {
                 let is_tabu = self.tabu_mat[cand.0 .0][cand.0 .1] > 0;
 
-                if !is_tabu {
+                if !is_tabu || cand.1 < best_neigh_cost {
                     best_neigh_sol = cand.2;
                     best_neigh_cost = cand.1;
                     self.tabu_mat[cand.0 .0][cand.0 .1] = tabu_time;
@@ -96,12 +96,13 @@ impl<'a> TabuSearch<'a> {
                 if u < 0.25 {
                     best_neigh_sol = gen_sol(&self.palets);
                 } else if u < 0.5 {
-                    best_neigh_sol = greedy_sol;
-                } else {
                     best_neigh_sol = elite;
+                } else {
+                    best_neigh_sol = greedy_sol;
                 }
 
                 best_neigh_cost = cost(self.cost_mat, &best_neigh_sol);
+                it += 1;
 
                 if u < 0.5 {
                     tabu_time += tabu_time / 2;
@@ -109,6 +110,12 @@ impl<'a> TabuSearch<'a> {
                     tabu_time /= 2;
                     if tabu_time < 1 {
                         tabu_time = 1;
+                    }
+                }
+
+                for row in self.tabu_mat.iter_mut() {
+                    for item in row {
+                        *item = 0;
                     }
                 }
             }

@@ -43,6 +43,7 @@ impl<'a> RandomSearch<'a> {
     fn gen_sol(&mut self) -> Trucks {
         let mut new_sol = Trucks::default();
         let mut lens = [0; N_TRUCKS];
+
         for pal in self.palets.iter().cloned() {
             let mut to_truck = self.rng.next_u64() as usize % N_TRUCKS;
             let mut last = lens[to_truck];
