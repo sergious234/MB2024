@@ -4,11 +4,12 @@ pub use algo::*;
 #[allow(unused)]
 pub mod rng {
     use std::cell::OnceCell;
+    use std::iter::Cycle;
     use std::sync::atomic::AtomicIsize;
     use std::sync::atomic::Ordering::Relaxed;
 
     use rand::rngs::SmallRng;
-    use rand::{random, RngCore, SeedableRng};
+    use rand::{random, Rng, RngCore, SeedableRng};
 
     pub const SEED: usize = 334;
     const MASK: isize = 29871152;
@@ -21,10 +22,34 @@ pub mod rng {
     /// Or at least dont say you are using it.
     pub struct RNG;
 
+    use rand::distributions::{DistIter, Standard};
+
     impl RNG {
         pub fn set_new_seed(seed: usize) {
             unsafe {
                 SRNG = Some(SmallRng::seed_from_u64(seed as u64));
+            }
+        }
+
+        pub fn cicle() -> DistIter<Standard, &'static mut SmallRng, usize> {
+            let x = unsafe {
+                match SRNG.as_mut() {
+                    Some(r) => Some(r.sample_iter(rand::distributions::Standard)),
+                    None => {
+                        SRNG = Some(SmallRng::seed_from_u64(33));
+                        None
+                    }
+                }
+            };
+
+            if let Some(a) = x {
+                a
+            } else {
+                unsafe {
+                    SRNG.as_mut()
+                        .unwrap()
+                        .sample_iter(rand::distributions::Standard)
+                }
             }
         }
 

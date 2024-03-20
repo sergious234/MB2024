@@ -42,7 +42,6 @@ impl<'a> LocalSearch<'a> {
             }
         }
 
-        println!("BI {}", best_it);
         println!("Coste: {}", best_cost);
         best_cost
     }

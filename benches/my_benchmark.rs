@@ -9,11 +9,11 @@ fn criterion_benchmark(c: &mut Criterion) {
     let distances = read_distances("data/matriz_distancias_50.txt");
 
     let mut b = c.benchmark_group("Basic");
-    b.measurement_time(Duration::from_secs(10));
+    b.measurement_time(Duration::from_secs(60));
 
-    b.bench_function("SA", |b| {
+    b.bench_function("RS", |b| {
         b.iter(|| {
-            let sa = SimulatedAnnealing::new(black_box(&distances), black_box(cities.clone()));
+            let mut sa = RandomSearch::new(black_box(&distances), black_box(cities.clone()));
             sa.run();
         })
     });
