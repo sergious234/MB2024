@@ -17,6 +17,7 @@ mod greedy;
 pub use greedy::Greedy;
 
 use super::rng;
+use super::rng::RNG;
 use std::fs::read_to_string;
 
 #[allow(dead_code)]
@@ -62,7 +63,7 @@ const N_TRUCKS: usize = match LEVEL {
 const N_EVAL: usize = N * 5_000;
 
 const TRUCK_CAP: usize = 14;
-const ANN_CONST: f64 = 0.95;
+const ANN_CONST: f64 = 0.9;
 
 /// Change Between Trucks
 const CBT: bool = true;
@@ -124,12 +125,12 @@ fn gen_neighbour_2(
 
 fn two_op_in_truck(sol: &Trucks) -> Trucks {
     let mut sol = *sol;
-    let truck = rng::next_usize() % N_TRUCKS;
+    let truck = RNG::next() % N_TRUCKS;
 
-    let from = rng::next_usize() % TRUCK_CAP;
-    let mut to = rng::next_usize() % TRUCK_CAP;
+    let from = RNG::next() % TRUCK_CAP;
+    let mut to = RNG::next() % TRUCK_CAP;
     while to == from {
-        to = rng::next_usize() % TRUCK_CAP;
+        to = RNG::next() % TRUCK_CAP;
     }
 
     sol[truck].swap(to, from);
@@ -137,17 +138,17 @@ fn two_op_in_truck(sol: &Trucks) -> Trucks {
 }
 
 fn two_op_between_trucks(new_sol: &mut Trucks) -> &mut Trucks {
-    let from_truck = rng::next_usize() % N_TRUCKS;
-    let mut to_truck = rng::next_usize() % N_TRUCKS;
+    let from_truck = RNG::next() % N_TRUCKS;
+    let mut to_truck = RNG::next() % N_TRUCKS;
 
     while to_truck == from_truck {
-        to_truck = rng::next_usize() % N_TRUCKS;
+        to_truck = RNG::next() % N_TRUCKS;
     }
 
-    let from = rng::next_usize() % TRUCK_CAP;
-    let mut to = rng::next_usize() % TRUCK_CAP;
+    let from = RNG::next() % TRUCK_CAP;
+    let mut to = RNG::next() % TRUCK_CAP;
     while to == from {
-        to = rng::next_usize() % TRUCK_CAP;
+        to = RNG::next() % TRUCK_CAP;
     }
 
     let aux = new_sol[to_truck][to];
@@ -188,10 +189,10 @@ fn gen_sol(palets: &Palets) -> Trucks {
     let mut new_sol = Trucks::default();
     let mut lens = [0; N_TRUCKS];
     for pal in palets.iter().cloned() {
-        let mut to_truck = rng::next_usize() % N_TRUCKS;
+        let mut to_truck = RNG::next() % N_TRUCKS;
         let mut last = lens[to_truck];
         while last >= TRUCK_CAP {
-            to_truck = rng::next_usize() % N_TRUCKS;
+            to_truck = RNG::next() % N_TRUCKS;
             last = lens[to_truck];
         }
         new_sol[to_truck][last] = pal;

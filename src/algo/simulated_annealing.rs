@@ -51,6 +51,7 @@ impl<'a> SimulatedAnnealing<'a> {
         let aceptacion = |delta: f64, t: f64| ((-delta) / t).exp();
         let mut left_ann = 0;
         let mut left_its = 0;
+        let mut best_it = 0;
 
         const TOTAL_ANN: usize = 50 * N;
         const TOTAL_ITS: usize = 5_000 * N;
@@ -68,6 +69,7 @@ impl<'a> SimulatedAnnealing<'a> {
                 if delta_cost < 0.0 || next_f64_range(0.0, 1.0) < aceptacion(delta_cost, temp) {
                     best_cost = cost_cand;
                     best_sol = sol_cand;
+                    best_it = left_its;
                 }
 
                 if CBT {
@@ -82,7 +84,7 @@ impl<'a> SimulatedAnnealing<'a> {
         }
 
         // println!("Evals: {}", left_its);
-        // println!("Coste: {}", best_cost);
+        println!("Coste: {}", best_cost);
         best_cost
     }
 }

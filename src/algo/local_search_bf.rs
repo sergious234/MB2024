@@ -21,6 +21,7 @@ impl<'a> LocalSearch<'a> {
         let mut best_cost = cost(self.cost_mat, &best_sol);
 
         let mut it = 0;
+        let mut best_it = 0;
 
         // let mut visitados = HashSet::new();
         let mut switch = true;
@@ -37,9 +38,11 @@ impl<'a> LocalSearch<'a> {
             if next_cost < best_cost {
                 best_sol = next_sol;
                 best_cost = next_cost;
+                best_it = it;
             }
         }
 
+        println!("BI {}", best_it);
         println!("Coste: {}", best_cost);
         best_cost
     }

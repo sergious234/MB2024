@@ -71,7 +71,7 @@ impl<'a> TabuSearch<'a> {
             for cand in candidates {
                 let is_tabu = self.tabu_mat[cand.0 .0][cand.0 .1] > 0;
 
-                if !is_tabu || cand.1 < best_neigh_cost {
+                if !is_tabu {
                     best_neigh_sol = cand.2;
                     best_neigh_cost = cand.1;
                     self.tabu_mat[cand.0 .0][cand.0 .1] = tabu_time;

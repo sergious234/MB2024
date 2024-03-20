@@ -3,6 +3,7 @@ pub use algo::*;
 
 #[allow(unused)]
 pub mod rng {
+    use std::cell::OnceCell;
     use std::sync::atomic::AtomicIsize;
     use std::sync::atomic::Ordering::Relaxed;
 
@@ -13,6 +14,34 @@ pub mod rng {
     const MASK: isize = 29871152;
     const PRIME: isize = 65539;
     static CURRENT: AtomicIsize = AtomicIsize::new(SEED as isize);
+
+    static mut SRNG: Option<SmallRng> = None;
+
+    /// Do not use this in multi thread
+    /// Or at least dont say you are using it.
+    pub struct RNG;
+
+    impl RNG {
+        pub fn set_new_seed(seed: usize) {
+            unsafe {
+                SRNG = Some(SmallRng::seed_from_u64(seed as u64));
+            }
+        }
+
+        pub fn next() -> usize {
+            let x = unsafe {
+                match SRNG.as_mut() {
+                    Some(r) => Some(r.next_u64() as usize),
+                    None => {
+                        SRNG = Some(SmallRng::seed_from_u64(33));
+                        None
+                    }
+                }
+            };
+
+            x.unwrap_or(unsafe { SRNG.as_mut().map(|s| s.next_u64() as usize).unwrap() })
+        }
+    }
 
     pub fn get_time_usize() -> usize {
         std::time::SystemTime::now()
