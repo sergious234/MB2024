@@ -16,7 +16,6 @@ pub use greedy_exp::GreedyExp;
 mod greedy;
 pub use greedy::Greedy;
 
-use super::rng;
 use super::rng::RNG;
 use std::fs::read_to_string;
 
@@ -75,9 +74,8 @@ type Palets = Vec<Palet>;
 type Trucks = [[Palet; TRUCK_CAP]; N_TRUCKS];
 
 pub fn read_palets(file: &str) -> Palets {
-    let content = read_to_string(file);
-    let content = content.expect("Could not read the palets file");
-    content
+    read_to_string(file)
+        .expect("Could not read the palets file")
         .lines()
         .map(|l| l.trim().parse().expect("Couldnt parse the value"))
         .collect()
@@ -96,11 +94,14 @@ pub fn read_distances(file: &str) -> Costs {
 }
 
 fn gen_neighbour(sol: &Trucks, change_palets: bool) -> Trucks {
-    let mut nb = two_op_in_truck(sol);
+    let mut sol = *sol;
+
     if change_palets {
-        two_op_between_trucks(&mut nb);
+        two_op_between_trucks(&mut sol);
+    } else {
+        two_op_in_truck(&mut sol);
     }
-    nb
+    sol
 }
 
 #[allow(dead_code)]
@@ -123,12 +124,12 @@ fn gen_neighbour_2(
     nb
 }
 
-fn two_op_in_truck(sol: &Trucks) -> Trucks {
-    let mut sol = *sol;
-    let truck = RNG::next() % N_TRUCKS;
-
+fn two_op_in_truck(sol: &mut Trucks) -> &mut Trucks {
     let from = RNG::next() % TRUCK_CAP;
     let mut to = RNG::next() % TRUCK_CAP;
+
+    let truck = RNG::next() % N_TRUCKS;
+
     while to == from {
         to = RNG::next() % TRUCK_CAP;
     }
@@ -140,7 +141,6 @@ fn two_op_in_truck(sol: &Trucks) -> Trucks {
 fn two_op_between_trucks(new_sol: &mut Trucks) -> &mut Trucks {
     let from_truck = RNG::next() % N_TRUCKS;
     let mut to_truck = RNG::next() % N_TRUCKS;
-
     while to_truck == from_truck {
         to_truck = RNG::next() % N_TRUCKS;
     }
@@ -183,6 +183,22 @@ pub fn cost(cost_mat: &Costs, sol: &Trucks) -> usize {
     }
 
     cost
+}
+
+fn gen_sol2(palets: &Palets) -> Trucks {
+    let mut new_sol = Trucks::default();
+
+    let mut pals = palets.clone();
+    for t in new_sol.iter_mut() {
+        let mut last = 0;
+        while last < TRUCK_CAP {
+            let index = RNG::next() % pals.len();
+            let x = pals.remove(index);
+            t[last] = x;
+            last += 1;
+        }
+    }
+    new_sol
 }
 
 fn gen_sol(palets: &Palets) -> Trucks {

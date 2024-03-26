@@ -37,7 +37,7 @@ impl<'a> SimulatedAnnealing<'a> {
     }
 
     pub fn run(&self) -> usize {
-        let mut best_sol = gen_sol(&self.palets);
+        let mut best_sol = gen_sol2(&self.palets);
         let mut best_cost = cost(self.cost_mat, &best_sol);
 
         let mut switch = true;
@@ -60,13 +60,13 @@ impl<'a> SimulatedAnnealing<'a> {
             left_ann += 1;
 
             for _ in 0..lt {
-                let sol_cand = gen_neighbour(&best_sol, switch);
+                let sol_cand = gen_neighbour(&best_sol, true);
                 let cost_cand = cost(self.cost_mat, &sol_cand);
                 left_its += 1;
 
-                let delta_cost = cost_cand as f64 - best_cost as f64;
+                let delta_cost = (cost_cand as f64) - (best_cost as f64);
 
-                if delta_cost < 0.0 || next_f64_range(0.0, 1.0) < aceptacion(delta_cost, temp) {
+                if delta_cost < 0.0 || RNG::next_f64() < aceptacion(delta_cost, temp) {
                     best_cost = cost_cand;
                     best_sol = sol_cand;
                     best_it = left_its;

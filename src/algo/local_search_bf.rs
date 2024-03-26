@@ -17,7 +17,7 @@ impl<'a> LocalSearch<'a> {
     }
 
     pub fn run(&self) -> usize {
-        let mut best_sol = gen_sol(&self.palets);
+        let mut best_sol = gen_sol2(&self.palets);
         let mut best_cost = cost(self.cost_mat, &best_sol);
 
         let mut it = 0;
@@ -33,6 +33,7 @@ impl<'a> LocalSearch<'a> {
             if CBT {
                 switch = !switch;
             }
+
             let next_cost = cost(self.cost_mat, &next_sol);
 
             if next_cost < best_cost {

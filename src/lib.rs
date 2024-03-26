@@ -24,6 +24,7 @@ pub mod rng {
 
     use rand::distributions::{DistIter, Standard};
 
+    type DD = rand::distributions::Uniform<usize>;
     impl RNG {
         pub fn set_new_seed(seed: usize) {
             unsafe {
@@ -31,24 +32,17 @@ pub mod rng {
             }
         }
 
-        pub fn cicle() -> DistIter<Standard, &'static mut SmallRng, usize> {
-            let x = unsafe {
+        pub fn cicle() -> DistIter<DD, &'static mut SmallRng, usize> {
+            unsafe {
                 match SRNG.as_mut() {
-                    Some(r) => Some(r.sample_iter(rand::distributions::Standard)),
+                    Some(r) => {
+                        r.sample_iter(rand::distributions::Uniform::<usize>::new(0, 10000000000))
+                    }
                     None => {
                         SRNG = Some(SmallRng::seed_from_u64(33));
-                        None
+                        let r = SRNG.as_mut().unwrap();
+                        r.sample_iter(rand::distributions::Uniform::<usize>::new(0, 10000000000))
                     }
-                }
-            };
-
-            if let Some(a) = x {
-                a
-            } else {
-                unsafe {
-                    SRNG.as_mut()
-                        .unwrap()
-                        .sample_iter(rand::distributions::Standard)
                 }
             }
         }
@@ -65,6 +59,19 @@ pub mod rng {
             };
 
             x.unwrap_or(unsafe { SRNG.as_mut().map(|s| s.next_u64() as usize).unwrap() })
+        }
+
+        pub fn next_f64() -> f64 {
+            let x = unsafe {
+                match SRNG.as_mut() {
+                    Some(r) => Some(r.gen()),
+                    None => {
+                        SRNG = Some(SmallRng::seed_from_u64(33));
+                        None
+                    }
+                }
+            };
+            x.unwrap_or(unsafe { SRNG.as_mut().map(|s| s.gen()).unwrap() })
         }
     }
 
