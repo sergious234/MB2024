@@ -13,13 +13,22 @@ fn main() {
 
     const SEEDS: [usize; 5] = [123456, 654321, 1, 2, 3];
 
-    println!("\n\nRandom Search: ");
-    let mut rng = SmallRng::seed_from_u64(SEED as u64);
+    // println!("\n\nRandom Search: ");
+    // let mut rng = SmallRng::seed_from_u64(SEED as u64);
+    // measure_time(|| {
+    //     for i in 0..ITER_PER_ALGO {
+    //         RNG::set_new_seed(SEEDS[i]);
+    //         let mut search = RandomSearch::new(&distances, cities.clone());
+    //         search.run();
+    //     }
+    // });
+
+    println!("\n\nGrasp Search: ");
     measure_time(|| {
         for i in 0..ITER_PER_ALGO {
             RNG::set_new_seed(SEEDS[i]);
-            let mut search = RandomSearch::new(&distances, cities.clone());
-            search.run();
+            let search = Grasp::new(&distances, &cities);
+            let r = search.run();
         }
     });
 
@@ -27,7 +36,7 @@ fn main() {
     measure_time(|| {
         for i in 0..ITER_PER_ALGO {
             RNG::set_new_seed(SEEDS[i]);
-            let search = LocalSearchBF::new(&distances, cities.clone());
+            let search = LocalSearchBF::new(&distances, &cities);
             let r = search.run();
         }
     });
@@ -57,6 +66,7 @@ fn main() {
         println!("[Greedy] Coste: {:?}", cost(&distances, &c));
     });
 
+    /*
     let mut m_sol = [
         [22, 12, 33, 10, 11, 12, 12, 11, 17, 10, 12, 49, 17, 0],
         [43, 11, 26, 1, 38, 2, 38, 20, 39, 20, 2, 26, 38, 25],
@@ -80,6 +90,7 @@ fn main() {
     let m_cost = cost(&distances, &m_sol);
 
     println!("M cost: {}", m_cost);
+    */
 }
 
 fn measure_time(fun: impl FnOnce()) {

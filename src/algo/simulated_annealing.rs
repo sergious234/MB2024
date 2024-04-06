@@ -83,7 +83,7 @@ impl<'a> SimulatedAnnealing<'a> {
             };
         }
 
-        // println!("Evals: {}", left_its);
+        println!("BI: {}", best_it);
         println!("Coste: {}", best_cost);
         best_cost
     }

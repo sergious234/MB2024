@@ -20,12 +20,13 @@ impl<'a> GreedyExp<'a> {
 
     pub fn run(&self) -> Trucks {
         let mut sol = Trucks::default();
-        let mut pals = self.palets.clone();
+        let mut pals = read_palets(PALETS_PATH); //self.palets.clone();
 
         let mut lens = [0; N_TRUCKS];
 
         for (it, truck) in sol.iter_mut().enumerate() {
             truck[0] = pals.pop().expect("There are no palets left");
+            lens[it] += 1;
 
             let mut current_city = truck[0];
 
@@ -49,9 +50,6 @@ impl<'a> GreedyExp<'a> {
             }
         }
 
-        for (i, t) in sol.iter().enumerate() {
-            println!("  Truck {}: {:?}", i, t);
-        }
         let c = cost(self.cost_mat, &sol);
         println!("Coste: {}", c);
         sol

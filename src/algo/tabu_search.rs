@@ -37,18 +37,21 @@ impl<'a> TabuSearch<'a> {
 
         let mut elite = gen_sol(&self.palets);
         let mut elite_cost = cost(self.cost_mat, &elite);
-        let tabu_size = 50;
+        let tabu_size = 100;
 
         let mut tabu_time = 4;
 
         let mut it = 0;
+
+        let mut when = 0;
+        let mut cand_it = 0;
 
         let mut best_neigh_cost = elite_cost;
         let mut best_neigh_sol = elite;
 
         let mut moves = [[0u16; N]; N_TRUCKS];
 
-        while it < N_EVAL * 10 {
+        while it < N_EVAL {
             let mut candidates = vec![];
 
             for _ in 0..tabu_size {
@@ -65,17 +68,17 @@ impl<'a> TabuSearch<'a> {
                 let cand_sol = gen_neighbour_2(&best_neigh_sol, true, truck_a, truck_b, from, to);
                 let cand_cost = cost(self.cost_mat, &cand_sol);
 
-                candidates.push(((from, to, truck_a, truck_b), cand_cost, cand_sol));
+                candidates.push(((from, to, truck_a, truck_b), cand_cost, cand_sol, it));
                 it += 1;
             }
 
-            // Sort by cost
             candidates.sort_by(|a, b| a.1.cmp(&b.1));
 
             for cand in candidates {
                 let is_tabu = self.tabu_mat[cand.0 .0][cand.0 .1] > 0;
 
                 if !is_tabu {
+                    cand_it = cand.3;
                     best_neigh_sol = cand.2;
                     best_neigh_cost = cand.1;
                     self.tabu_mat[cand.0 .0][cand.0 .1] = tabu_time;
@@ -106,11 +109,11 @@ impl<'a> TabuSearch<'a> {
                 let u = next_f64_range(0.0, 1.0);
 
                 if u < 0.25 {
-                    best_neigh_sol = self.long_memory_sol(&moves);
-                } else if u < 0.5 {
                     best_neigh_sol = elite;
+                } else if u < 0.5 {
+                    best_neigh_sol = self.long_memory_sol(&moves);
                 } else {
-                    best_neigh_sol = greedy_sol;
+                    best_neigh_sol = gen_sol(&self.palets);
                 }
 
                 best_neigh_cost = cost(self.cost_mat, &best_neigh_sol);
@@ -121,7 +124,7 @@ impl<'a> TabuSearch<'a> {
                 } else {
                     tabu_time /= 2;
                     if tabu_time < 1 {
-                        tabu_time = 1;
+                        tabu_time = 2;
                     }
                 }
 
@@ -135,9 +138,11 @@ impl<'a> TabuSearch<'a> {
             if best_neigh_cost < elite_cost {
                 elite = best_neigh_sol;
                 elite_cost = best_neigh_cost;
+                when = cand_it;
             }
         }
 
+        println!("\n\nWhen : {}", when);
         println!("Coste: {}", elite_cost);
         elite_cost
     }

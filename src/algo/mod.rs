@@ -16,6 +16,9 @@ pub use greedy_exp::GreedyExp;
 mod greedy;
 pub use greedy::Greedy;
 
+mod grasp;
+pub use grasp::Grasp;
+
 use super::rng::RNG;
 use std::fs::read_to_string;
 
