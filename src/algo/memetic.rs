@@ -9,7 +9,7 @@ const N_CROMOSOMA: usize = 50; //genetic::N_CROMOSOMA;
 const CROSS: CrossType = CrossType::OX;
 const EVALS: usize = 50 * N;
 const PAIRS: usize = N_CROMOSOMA / 2 - 2;
-const ST: bool = false;
+const ST: bool = true;
 const N_GEN: usize = 100 * N;
 
 const V: usize = 2;
@@ -66,9 +66,7 @@ impl<'a> Memetic<'a> {
         while gen < N_GEN {
             gen += 1;
 
-            if gen % 100 == 0 {
-                println!("{}", cache.len());
-            }
+            if gen % 100 == 0 {}
 
             self.poblacion.sort_by(|a, b| a.cost.cmp(&b.cost));
             if gen % 1 == 0 {
@@ -93,13 +91,14 @@ impl<'a> Memetic<'a> {
 
             if ST && gen % OPT_CD == 0 {
                 for i in 0..LS_N {
+                    /*
                     let mut optimized_sol = bl.run_with_start::<EVALS>(&next_gen[i]);
                     let cost = optimized_sol.cost(self.palets, self.cost_mat);
                     // cache.insert(optimized_sol.clone(), cost);
                     if cost < next_gen[i].cost {
                         next_gen[i] = optimized_sol;
                     }
-                    /*
+                    */
                     if cache.contains_key(&next_gen[i]) {
                         if cache.get(&next_gen[i]).unwrap() < &next_gen[i].cost {
                             let mut optimized_sol = bl.run_with_start::<EVALS>(&next_gen[i]);
@@ -114,28 +113,32 @@ impl<'a> Memetic<'a> {
                             next_gen[i] = optimized_sol;
                         }
                     }
-                    */
                 }
             } else if gen % OPT_CD == 0 {
                 let mejoras = (0..LS_N)
-                    .filter(|i| !cache.contains_key(&next_gen[*i]))
-                    .collect::<Vec<_>>()
-                    .into_par_iter()
+                    .filter(|&i| !(cache.contains_key(&next_gen[i])))
+                    .par_bridge()
                     .map(|i| {
                         let mut optimized_sol = bl.run_with_start::<EVALS>(&next_gen[i]);
                         optimized_sol.cost(self.palets, self.cost_mat);
                         (optimized_sol, i)
                         // cache.insert(optimized_sol.clone(), cost);
                     })
-                    .filter(|(sol, i)| sol.cost < next_gen[*i].cost)
                     .collect::<Vec<_>>()
                     .into_iter()
+                    .map(|(sol, i)| {
+                        cache.insert(next_gen[i].clone(), sol.cost);
+                        (sol, i)
+                    })
+                    .filter(|(sol, i)| sol.cost < next_gen[*i].cost)
+                    .into_iter()
                     .fold(0, |acc, (sol, i)| {
-                        cache.insert(next_gen[i].clone(), next_gen[i].cost);
                         next_gen[i] = sol;
                         acc + 1
                     });
-                // println!("Mejoras {mejoras}");
+                if mejoras > 0 {
+                    println!("Mejoras {mejoras}");
+                }
             }
 
             //            if gen % 100 == 0 {
