@@ -1,11 +1,10 @@
 use std::ops::Div;
 
 use crate::algo::*;
-use crate::rng::next_f64_range;
 
 pub struct SimulatedAnnealing<'a> {
     cost_mat: &'a Costs,
-    palets: Palets,
+    palets: &'a Palets,
     #[allow(unused)]
     trucks: Trucks,
 }
@@ -28,7 +27,7 @@ impl AnnealingMech {
 }
 
 impl<'a> SimulatedAnnealing<'a> {
-    pub fn new(cost_mat: &'a Costs, palets: Palets) -> Self {
+    pub fn new(cost_mat: &'a Costs, palets: &'a Palets) -> Self {
         Self {
             cost_mat,
             palets,
@@ -36,8 +35,13 @@ impl<'a> SimulatedAnnealing<'a> {
         }
     }
 
-    pub fn run(&self) -> usize {
-        let mut best_sol = gen_sol2(&self.palets);
+    pub fn run(&self) -> Trucks {
+        let best_sol = gen_sol2(&self.palets);
+        self.run_with_start(best_sol)
+    }
+
+    pub fn run_with_start(&self, trucks: Trucks) -> Trucks {
+        let mut best_sol = trucks;
         let mut best_cost = cost(self.cost_mat, &best_sol);
 
         let mut switch = true;
@@ -51,6 +55,8 @@ impl<'a> SimulatedAnnealing<'a> {
         let aceptacion = |delta: f64, t: f64| ((-delta) / t).exp();
         let mut left_ann = 0;
         let mut left_its = 0;
+
+        #[allow(unused)]
         let mut best_it = 0;
 
         const TOTAL_ANN: usize = 50 * N;
@@ -69,7 +75,7 @@ impl<'a> SimulatedAnnealing<'a> {
                 if delta_cost < 0.0 || RNG::next_f64() < aceptacion(delta_cost, temp) {
                     best_cost = cost_cand;
                     best_sol = sol_cand;
-                    best_it = left_its;
+                    // best_it = left_its;
                 }
 
                 if CBT {
@@ -82,10 +88,7 @@ impl<'a> SimulatedAnnealing<'a> {
                 _ => ann_mech.update(init_temp, left_its as f64),
             };
         }
-
-        println!("BI: {}", best_it);
-        println!("Coste: {}", best_cost);
-        best_cost
+        best_sol
     }
 }
 

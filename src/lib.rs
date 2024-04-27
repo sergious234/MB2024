@@ -1,12 +1,70 @@
 pub mod algo;
 pub use algo::*;
 
+pub mod logger {
+    use std::{
+        fs::File,
+        io::{BufWriter, Write},
+    };
+
+    pub struct DataLogger {
+        buff: BufWriter<File>,
+        name: String,
+    }
+
+    impl DataLogger {
+        pub fn new(name: &str) -> Self {
+            let file = File::options()
+                .append(true)
+                .write(true)
+                .create(true)
+                .open("/home/sergio/Projects/MB/data.txt")
+                .expect("Error");
+
+            let buff = BufWriter::new(file);
+            Self {
+                buff,
+                name: name.to_owned(),
+            }
+        }
+
+        pub fn log(&mut self, it: usize, cost: usize) {
+            self.buff
+                .write_fmt(format_args!("\"{}\" {} {}\n", self.name, it, cost))
+                .expect("Error at writing");
+        }
+    }
+
+    pub fn reset_log() {
+        File::options()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open("/home/sergio/Projects/MB/data.txt")
+            .expect("Error");
+    }
+
+    pub fn log(it: usize, cost: usize) {
+        let file = File::options()
+            .append(true)
+            .write(true)
+            .create(true)
+            .open("/home/sergio/Projects/MB/data.txt")
+            .expect("Error");
+
+        let mut buff = BufWriter::new(file);
+
+        buff.write_fmt(format_args!("{} {}\n", it, cost))
+            .expect("Error at writing");
+    }
+}
+
 #[allow(unused)]
 pub mod rng {
     use std::cell::OnceCell;
     use std::iter::Cycle;
-    use std::sync::atomic::AtomicIsize;
     use std::sync::atomic::Ordering::Relaxed;
+    use std::sync::atomic::{AtomicBool, AtomicIsize};
 
     use rand::rngs::SmallRng;
     use rand::{random, Rng, RngCore, SeedableRng};
@@ -17,6 +75,10 @@ pub mod rng {
     static CURRENT: AtomicIsize = AtomicIsize::new(SEED as isize);
 
     static mut SRNG: Option<SmallRng> = None;
+
+    static FREE: bool = true;
+    static LOCKED: bool = false;
+    static mut LOCK: AtomicBool = AtomicBool::new(FREE);
 
     /// Do not use this in multi thread
     /// Or at least dont say you are using it.
@@ -49,13 +111,15 @@ pub mod rng {
 
         pub fn next() -> usize {
             let x = unsafe {
-                match SRNG.as_mut() {
+                let val = match SRNG.as_mut() {
                     Some(r) => Some(r.next_u64() as usize),
                     None => {
                         SRNG = Some(SmallRng::seed_from_u64(33));
                         None
                     }
-                }
+                };
+
+                val
             };
 
             x.unwrap_or(unsafe { SRNG.as_mut().map(|s| s.next_u64() as usize).unwrap() })
@@ -72,6 +136,24 @@ pub mod rng {
                 }
             };
             x.unwrap_or(unsafe { SRNG.as_mut().map(|s| s.gen()).unwrap() })
+        }
+    }
+
+    impl RngCore for RNG {
+        fn next_u32(&mut self) -> u32 {
+            RNG::next() as u32
+        }
+
+        fn next_u64(&mut self) -> u64 {
+            RNG::next() as u64
+        }
+
+        fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand::Error> {
+            unimplemented!("no")
+        }
+
+        fn fill_bytes(&mut self, dest: &mut [u8]) {
+            unimplemented!("no")
         }
     }
 

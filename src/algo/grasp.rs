@@ -1,4 +1,5 @@
 use super::*;
+use std::collections::HashMap;
 pub struct Grasp<'a> {
     cost_mat: &'a Costs,
     palets: &'a Palets,
@@ -15,23 +16,34 @@ impl<'a> Grasp<'a> {
         }
     }
 
-    pub fn run(&self) -> Trucks {
+    pub fn run(&self, search_kind: SearchType) -> Trucks {
         let mut best_sol = Trucks::default();
         let mut best_cost = usize::MAX;
 
-        let gp = GreedyT::new(self.cost_mat, self.palets);
-        let ls = LocalSearchBF::new(self.cost_mat, self.palets);
-        for _it in 0..50 {
+        let gp = GreedyP::new(self.cost_mat, self.palets);
+
+        let mut solutions = HashMap::new();
+        for _it in 0..10 {
             let mut sol = gp.run();
-            sol = ls.run_with_start(sol);
+            sol = search_kind.search(self.cost_mat, self.palets, sol);
             let cost = cost(self.cost_mat, &sol);
 
             if cost < best_cost {
                 best_cost = cost;
                 best_sol = sol;
             }
+            *solutions.entry(sol).or_insert(0) += 1;
         }
-        println!("Coste: {}", best_cost);
+
+        /*
+        let mut i = 0;
+        for (_sol, val) in solutions.iter() {
+            println!("Solution: {i} appears {} times", val);
+            i += 1;
+
+        }
+        */
+        println!("Best solution cost: {}", best_cost);
         best_sol
     }
 }
@@ -42,6 +54,7 @@ impl<'a> Grasp<'a> {
  *
  */
 
+#[allow(unused)]
 struct GreedyT<'a> {
     cost_mat: &'a Costs,
     palets: &'a Palets,
@@ -49,6 +62,7 @@ struct GreedyT<'a> {
     trucks: Trucks,
 }
 
+#[allow(unused)]
 impl<'a> GreedyT<'a> {
     pub fn new(cost_mat: &'a Costs, palets: &'a Palets) -> Self {
         Self {
@@ -105,6 +119,7 @@ struct GreedyP<'a> {
     trucks: Trucks,
 }
 
+#[allow(dead_code)]
 impl<'a> GreedyP<'a> {
     pub fn new(cost_mat: &'a Costs, palets: &'a Palets) -> Self {
         Self {

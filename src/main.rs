@@ -1,16 +1,16 @@
-use practica_one::rng;
-use rand::{rngs::SmallRng, SeedableRng};
-
-use practica_one::algo::*;
 #[allow(unused)]
 use practica_one::rng::{get_time_usize, next_f64_range, RNG, SEED};
+use practica_one::{algo::*, logger::reset_log};
+
 const ITER_PER_ALGO: usize = 5;
+const ALGOS: [SearchType; 3] = [SearchType::LS, SearchType::SA, SearchType::TS];
 
 #[allow(unused)]
 fn main() {
     let cities = read_palets(PALETS_PATH);
     let distances = read_distances(DISTANCE_PATH);
 
+    reset_log();
     const SEEDS: [usize; 5] = [123456, 654321, 1, 2, 3];
 
     // println!("\n\nRandom Search: ");
@@ -23,21 +23,38 @@ fn main() {
     //     }
     // });
 
-    println!("\n\nGrasp Search: ");
+    println!("\n\n Memetico: ");
     measure_time(|| {
         for i in 0..ITER_PER_ALGO {
             RNG::set_new_seed(SEEDS[i]);
-            let search = Grasp::new(&distances, &cities);
-            let r = search.run();
+            let name = format!("{:?}_{}", LEVEL, SEEDS[i]);
+            let mut search = Memetic::new(&distances, &cities, &name);
+            let s = search.run();
+            // println!("{}", cost(&distances, &s));
         }
     });
+
+    return ();
+
+    println!("\n\n Genetico: ");
+    measure_time(|| {
+        for i in 0..ITER_PER_ALGO {
+            RNG::set_new_seed(SEEDS[i]);
+            let mut search = Genetic::new(&distances, &cities);
+            let s = search.run();
+            // println!("{}", cost(&distances, &s));
+        }
+    });
+
+    return ();
 
     println!("\n\nLocal Search: ");
     measure_time(|| {
         for i in 0..ITER_PER_ALGO {
             RNG::set_new_seed(SEEDS[i]);
             let search = LocalSearchBF::new(&distances, &cities);
-            let r = search.run();
+            let s = search.run();
+            println!("{}", cost(&distances, &s));
         }
     });
 
@@ -45,8 +62,9 @@ fn main() {
     measure_time(|| {
         for i in 0..ITER_PER_ALGO {
             RNG::set_new_seed(SEEDS[i]);
-            let search = SimulatedAnnealing::new(&distances, cities.clone());
-            search.run();
+            let search = SimulatedAnnealing::new(&distances, &cities);
+            let s = search.run();
+            println!("{}", cost(&distances, &s));
         }
     });
 
@@ -54,8 +72,9 @@ fn main() {
     measure_time(|| {
         for i in 0..ITER_PER_ALGO {
             RNG::set_new_seed(SEEDS[i]);
-            let mut search = TabuSearch::new(&distances, cities.clone());
-            search.run();
+            let mut search = TabuSearch::new(&distances, &cities);
+            let s = search.run();
+            println!("{}", cost(&distances, &s));
         }
     });
 
@@ -64,6 +83,34 @@ fn main() {
         let search = Greedy::new(&distances, cities.clone());
         let c = search.run();
         println!("[Greedy] Coste: {:?}", cost(&distances, &c));
+    });
+
+    println!("\n\n ==================================================== \n\n");
+    println!("\n\n                     PRACTICA 2                       \n\n");
+    println!("\n\n ==================================================== \n\n");
+
+    println!("\n\nILS Search: ");
+    measure_time(|| {
+        for algo in ALGOS {
+            for i in 0..1 {
+                RNG::set_new_seed(SEEDS[i]);
+                let search = Ils::new(&distances, &cities);
+                let r = search.run(algo);
+            }
+            println!();
+        }
+    });
+
+    println!("\n\nGrasp Search: ");
+    measure_time(|| {
+        for algo in ALGOS {
+            for i in 0..1 {
+                RNG::set_new_seed(SEEDS[i]);
+                let search = Grasp::new(&distances, &cities);
+                let r = search.run(algo);
+            }
+            println!();
+        }
     });
 
     /*
@@ -81,15 +128,6 @@ fn main() {
         [28, 46, 9, 4, 46, 35, 46, 46, 18, 4, 35, 46, 15, 44],
         [13, 40, 48, 10, 40, 40, 11, 10, 17, 45, 1, 43, 40, 35],
     ];
-
-    for t in m_sol.iter_mut() {
-        for e in t.iter_mut() {
-            *e += 1;
-        }
-    }
-    let m_cost = cost(&distances, &m_sol);
-
-    println!("M cost: {}", m_cost);
     */
 }
 

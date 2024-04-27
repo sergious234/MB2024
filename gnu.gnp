@@ -1,0 +1,19 @@
+# Configuración de estilo y colores
+set term qt font 'Noto Sans Mono,12'
+set datafile separator ' ' 
+
+# plot 'data.txt' using 2:3 with lp lt 7 ps 0.1
+set palette defined (\
+    1  '#0025ad', \
+    2  '#0042ad', \
+    3  '#0060ad', \
+    4  '#007cad' )
+
+#set linetype 1 lc rgb "red"
+#set linetype 2 lc rgb "blue"
+#set linetype 3 lc rgb "green"
+#set linetype 4 lc rgb "orange"
+#set linetype 5 lc rgb "purple"
+
+plot for[ i = 0:4:1] 'data.txt' every ::(i*200)::((i+1)*200-1) using 2:3 \
+    with lines linestyle i ti "Ejecucion ".(i)

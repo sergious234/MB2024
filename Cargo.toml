@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 criterion = "0.5.1"
 rand = { version = "0.8.5", features = ["small_rng"] }
+rayon = "1.10.0"
 
 
 [[bench]]

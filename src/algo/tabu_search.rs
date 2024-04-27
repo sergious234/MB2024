@@ -7,7 +7,7 @@ type LongMemory = [[u16; N]; N_TRUCKS];
 #[allow(dead_code)]
 pub struct TabuSearch<'a> {
     cost_mat: &'a Costs,
-    palets: Palets,
+    palets: &'a Palets,
     #[allow(unused)]
     trucks: Trucks,
     tabu_mat: Vec<Vec<usize>>,
@@ -15,7 +15,7 @@ pub struct TabuSearch<'a> {
 
 #[allow(dead_code)]
 impl<'a> TabuSearch<'a> {
-    pub fn new(cost_mat: &'a Costs, palets: Palets) -> Self {
+    pub fn new(cost_mat: &'a Costs, palets: &'a Palets) -> Self {
         let mut mat = vec![];
         for i in 0..N {
             mat.push(vec![]);
@@ -32,10 +32,16 @@ impl<'a> TabuSearch<'a> {
         }
     }
 
-    pub fn run(&mut self) -> usize {
+    pub fn run(&mut self) -> Trucks {
+        let elite = gen_sol(&self.palets);
+        self.run_with_start::<true>(elite)
+    }
+
+    pub fn run_with_start<const B: bool>(&mut self, sol: Trucks) -> Trucks {
+        #[allow(unused_variables)]
         let greedy_sol = Greedy::new(self.cost_mat, self.palets.clone()).run();
 
-        let mut elite = gen_sol(&self.palets);
+        let mut elite = sol;
         let mut elite_cost = cost(self.cost_mat, &elite);
         let tabu_size = 100;
 
@@ -43,7 +49,9 @@ impl<'a> TabuSearch<'a> {
 
         let mut it = 0;
 
+        #[allow(unused, dead_code, unused_variables)]
         let mut when = 0;
+        #[allow(unused, dead_code, unused_variables)]
         let mut cand_it = 0;
 
         let mut best_neigh_cost = elite_cost;
@@ -78,7 +86,7 @@ impl<'a> TabuSearch<'a> {
                 let is_tabu = self.tabu_mat[cand.0 .0][cand.0 .1] > 0;
 
                 if !is_tabu {
-                    cand_it = cand.3;
+                    // cand_it = cand.3;
                     best_neigh_sol = cand.2;
                     best_neigh_cost = cand.1;
                     self.tabu_mat[cand.0 .0][cand.0 .1] = tabu_time;
@@ -105,7 +113,7 @@ impl<'a> TabuSearch<'a> {
                 }
             }
 
-            if it % (500 * N) == 0 {
+            if it % (500 * N) == 0 && B {
                 let u = next_f64_range(0.0, 1.0);
 
                 if u < 0.25 {
@@ -138,13 +146,13 @@ impl<'a> TabuSearch<'a> {
             if best_neigh_cost < elite_cost {
                 elite = best_neigh_sol;
                 elite_cost = best_neigh_cost;
-                when = cand_it;
+                // when = cand_it;
             }
         }
 
-        println!("\n\nWhen : {}", when);
-        println!("Coste: {}", elite_cost);
-        elite_cost
+        // println!("\n\nWhen : {}", when);
+        // println!("Coste: {}", elite_cost);
+        elite
     }
 }
 
@@ -153,7 +161,7 @@ impl TabuSearch<'_> {
         let mut pals = [0; N];
         let mut new_sol = Trucks::default();
 
-        for city in &self.palets {
+        for city in self.palets {
             pals[*city as usize - 1] += 1;
         }
 
@@ -175,13 +183,6 @@ impl TabuSearch<'_> {
                 }
             }
         }
-
-        /*
-        println!("LongMemory");
-        for truck in new_sol {
-            println!("{:?}", truck);
-        }
-        */
 
         new_sol
     }

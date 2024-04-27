@@ -19,17 +19,27 @@ pub use greedy::Greedy;
 mod grasp;
 pub use grasp::Grasp;
 
+mod ils;
+pub use ils::Ils;
+
+mod genetic;
+pub use genetic::Genetic;
+
+mod memetic;
+pub use memetic::Memetic;
+
 use super::rng::RNG;
 use std::fs::read_to_string;
 
 #[allow(dead_code)]
-enum Level {
+#[derive(Debug)]
+pub enum Level {
     Small,
     Medium,
     Large,
 }
 
-const LEVEL: Level = Level::Large;
+pub const LEVEL: Level = Level::Large;
 
 pub const PALETS_PATH: &str = match LEVEL {
     Level::Small => "data/destinos_palets_84.txt",
@@ -73,8 +83,26 @@ const CBT: bool = true;
 /// N x N Matriz
 type Palet = u8;
 type Costs = Vec<Vec<usize>>;
+
 type Palets = Vec<Palet>;
 type Trucks = [[Palet; TRUCK_CAP]; N_TRUCKS];
+
+#[derive(Debug, Clone, Copy)]
+pub enum SearchType {
+    LS,
+    SA,
+    TS,
+}
+
+impl SearchType {
+    pub fn search(&self, cost_mat: &Costs, palets: &Palets, start: Trucks) -> Trucks {
+        match self {
+            Self::LS => LocalSearchBF::new(cost_mat, palets).run_with_start(start),
+            Self::SA => SimulatedAnnealing::new(cost_mat, palets).run_with_start(start),
+            Self::TS => TabuSearch::new(cost_mat, palets).run_with_start::<false>(start),
+        }
+    }
+}
 
 pub fn read_palets(file: &str) -> Palets {
     read_to_string(file)
